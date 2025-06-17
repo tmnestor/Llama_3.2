@@ -20,6 +20,7 @@
 
 # Ignore specific markdown files that contain local paths
 CLAUDE.md
+.claude/
 
 # Ignore dataset images (large files) but keep metadata
 datasets/*/images/
