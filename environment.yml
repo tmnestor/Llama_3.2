@@ -1,0 +1,40 @@
+name: llama_vision_env
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - numpy
+  - pandas
+  - pillow
+  - matplotlib
+  - tqdm
+  - pyyaml
+  - scikit-learn
+  - pip
+  - pip:
+    # Core dependencies for data generation and evaluation
+    - transformers>=4.37.0
+    - typer>=0.9.0
+    - rich>=13.0.0
+    - torch>=2.0.0
+    - torchvision
+    
+    # Optional dependencies for remote GPU execution
+    # Uncomment these on the remote host with GPU:
+    # - bitsandbytes  # For 8-bit quantization
+
+# Usage Instructions:
+# -----------------
+# Local Development (Mac - 16GB RAM):
+# conda env create -f environment.yml
+# conda activate llama_vision_env
+# 
+# Remote GPU Host (32GB+ RAM):
+# conda env create -f environment.yml
+# conda activate llama_vision_env
+# conda install pytorch torchvision pytorch-cuda=11.8 -c pytorch -c nvidia
+# pip install bitsandbytes
+#
+# Note: Local environment excludes PyTorch/GPU dependencies due to RAM limitations
+# All model inference must be performed on the remote GPU host

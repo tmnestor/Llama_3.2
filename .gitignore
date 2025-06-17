@@ -1,0 +1,59 @@
+# Ignore all files by default
+*
+
+# Don't ignore directories to maintain structure
+!*/
+
+# Don't ignore .gitignore and .gitkeep files (to maintain empty directories)
+!.gitignore
+!.gitkeep
+
+# Don't ignore source files, text files and markdown files
+!*.py
+!*.md
+!*.txt
+!*.yml
+!*.yaml
+!*.sh
+!*.json
+!*.csv
+
+# Ignore specific markdown files that contain local paths
+CLAUDE.md
+
+# Ignore dataset images (large files) but keep metadata
+datasets/*/images/
+datasets/*/train/
+datasets/*/val/
+datasets/*/test/
+!datasets/*/metadata.json
+!datasets/*/metadata.csv
+
+# Model outputs and results
+results/
+evaluation_results/
+batch_extraction_results/
+
+# Temporary files
+temp_data/
+data/raw/
+
+# Ignore Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Virtual environment
+venv_py311/
+llama_vision_env/
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db

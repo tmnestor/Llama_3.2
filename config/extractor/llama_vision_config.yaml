@@ -1,0 +1,133 @@
+# Configuration for Llama-Vision zero-shot receipt extractor
+
+# Model configuration
+model:
+  # Path to Llama-Vision model
+  # Remote host (required - 32GB+ RAM needed): "/efs/shared/models/Llama-3.2-11B-Vision"
+  # Local development not possible (only 16GB RAM available)
+  model_path: "/efs/shared/models/Llama-3.2-11B-Vision"
+  
+  # Device configuration
+  device: "cuda"  # or "cpu" for CPU-only inference
+  use_8bit: true  # Use 8-bit quantization for memory efficiency
+  
+  # Generation parameters
+  max_new_tokens: 1024
+  temperature: 0.1  # Low temperature for deterministic extraction
+  do_sample: false  # Disable sampling for consistent results
+
+# Extraction configuration
+extraction:
+  # Target fields to extract
+  fields:
+    - store_name
+    - date
+    - time
+    - total_amount
+    - payment_method
+    - receipt_id
+    - items
+    - tax_info
+    - discounts
+  
+  # Image preprocessing
+  image:
+    # Llama-Vision optimal image size
+    target_size: [336, 336]
+    # Whether to maintain aspect ratio
+    maintain_aspect_ratio: true
+    # Image quality for preprocessing
+    quality: 95
+
+# Prompt engineering
+prompts:
+  # Base system prompt
+  system_prompt: "You are a receipt information extraction assistant. Analyze the receipt in the image and extract the following information accurately."
+  
+  # Output format instructions
+  format_instructions: |
+    Provide your answer as a structured JSON object with these fields. 
+    For any field that cannot be found in the receipt, use null.
+    Format your response as a valid JSON object only, with no additional commentary or explanation.
+    Ensure that numeric values are formatted accordingly.
+  
+  # Field-specific prompts
+  field_prompts:
+    store_name: "What is the store or business name on this receipt? Extract just the name."
+    date: "What is the date of purchase on this receipt? Format as YYYY-MM-DD."
+    total: "What is the total amount on this receipt? Include the currency symbol if visible."
+    items: "Extract all individual items with their prices from this receipt. Format your answer as a valid JSON array of objects with 'item_name', 'quantity', and 'price' fields."
+
+# Post-processing configuration
+post_processing:
+  # Date format standardization
+  date_formats:
+    input_patterns:
+      - "MM/DD/YYYY"
+      - "DD/MM/YYYY" 
+      - "MM-DD-YYYY"
+      - "DD-MM-YYYY"
+      - "YYYY/MM/DD"
+    output_format: "YYYY-MM-DD"
+  
+  # Currency cleaning
+  currency:
+    symbols: ["$", "€", "£", "¥", "₹"]
+    decimal_places: 2
+  
+  # Text cleaning
+  text_cleaning:
+    remove_extra_whitespace: true
+    normalize_case: false  # Keep original case for store names
+
+# Evaluation configuration
+evaluation:
+  # Metrics to calculate
+  metrics:
+    - accuracy
+    - match_rate
+    - precision
+    - recall
+    - f1_score
+  
+  # String similarity threshold for partial matches
+  similarity_threshold: 0.8
+  
+  # Items evaluation
+  items_evaluation:
+    # Weight for exact name matches
+    name_match_weight: 1.0
+    # Weight for price matches
+    price_match_weight: 0.5
+    # Threshold for considering items as matched
+    match_threshold: 1.3
+    # Threshold for partial matches
+    partial_threshold: 0.8
+
+# Output configuration
+output:
+  # Results directory
+  results_dir: "results/llama_vision_extraction"
+  
+  # Save detailed extraction results
+  save_detailed: true
+  
+  # Save processing logs
+  save_logs: true
+  
+  # Output formats
+  formats:
+    - json
+    - csv  # For batch processing results
+
+# Logging configuration
+logging:
+  level: INFO
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  
+  # Log to file
+  file_logging:
+    enabled: true
+    filename: "extraction.log"
+    max_size_mb: 100
+    backup_count: 5
