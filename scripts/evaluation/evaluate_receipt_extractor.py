@@ -14,13 +14,17 @@ import torch
 import typer
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
-# Add project root to path
+# Add project root to path - must be done before local imports
 project_root = Path(__file__).resolve().parent.parent.parent
-sys.path.append(str(project_root))
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
 
-from evaluation.receipt_extractor_evaluator import ReceiptExtractorEvaluator
-from models.extractors.llama_vision_extractor import LlamaVisionExtractor
-from utils.cli import (
+# Local imports after path modification
+from evaluation.receipt_extractor_evaluator import (  # noqa: E402
+    ReceiptExtractorEvaluator,
+)
+from models.extractors.llama_vision_extractor import LlamaVisionExtractor  # noqa: E402
+from utils.cli import (  # noqa: E402
     RichConfig,
     ensure_output_dir,
     log_system_args,
@@ -48,7 +52,7 @@ def configure_logging(log_level: str) -> None:
 def evaluate(
     ground_truth: str = typer.Argument(..., help="Path to ground truth data file or directory"),
     model_path: str = typer.Option(
-        "/efs/shared/models/Llama-3.2-11B-Vision",
+        "/Users/tod/PretrainedLLM/Llama-3.2-1B-Vision",
         "--model-path", "-m",
         help="Path to Llama-Vision model"
     ),
@@ -182,7 +186,7 @@ def evaluate(
         print_error(rich_config, f"Evaluation failed: {e}")
         logger.error(f"Evaluation failed: {e}")
         logger.exception("Full traceback:")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 if __name__ == "__main__":

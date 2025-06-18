@@ -1,15 +1,15 @@
-# Configuration for Llama-Vision zero-shot receipt extractor
+# Configuration for Llama-3.2-1B-Vision zero-shot receipt extractor
 
 # Model configuration
 model:
-  # Path to Llama-Vision model
-  # Remote host (required - 32GB+ RAM needed): "/efs/shared/models/Llama-3.2-11B-Vision"
-  # Local development not possible (only 16GB RAM available)
-  model_path: "/efs/shared/models/Llama-3.2-11B-Vision"
+  # Path to Llama-3.2-1B-Vision-Instruct model
+  # Local Mac (16GB RAM compatible): "/Users/tod/PretrainedLLM/Llama-3.2-1B-Vision-Instruct"
+  # Remote host: "/efs/shared/models/Llama-3.2-1B-Vision-Instruct"
+  model_path: "/Users/tod/PretrainedLLM/Llama-3.2-1B-Vision"
   
   # Device configuration
-  device: "cuda"  # or "cpu" for CPU-only inference
-  use_8bit: true  # Use 8-bit quantization for memory efficiency
+  device: "auto"  # "auto" detects MPS/CUDA/CPU, "mps" for Mac M1/M2, "cpu" for CPU-only
+  use_8bit: false  # 8-bit quantization not needed for 1B model
   
   # Generation parameters
   max_new_tokens: 1024

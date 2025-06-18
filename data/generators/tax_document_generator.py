@@ -28,7 +28,7 @@ except ImportError:
             class Random:
                 def uniform(self, low, high):
                     return random.uniform(low, high)
-                def choice(self, arr, p=None, size=None):
+                def choice(self, arr, p=None, size=None):  # noqa: ARG002
                     if p is None:
                         return random.choice(arr)
                     # Simple weighted random choice
@@ -266,7 +266,7 @@ def create_background_with_watermark(width, height, dept="Australian Taxation Of
     return background.convert('RGB')
 
 
-def create_header(draw, width, height, margin, dept, doc_type):
+def create_header(draw, width, height, margin, dept, doc_type):  # noqa: ARG001
     """
     Create an official-looking header for the document.
     
@@ -423,7 +423,7 @@ def create_header(draw, width, height, margin, dept, doc_type):
     return current_y
 
 
-def create_reference_section(draw, width, height, margin, current_y):
+def create_reference_section(draw, width, height, margin, current_y):  # noqa: ARG001
     """
     Create a reference section with document identifiers and date.
     
@@ -528,7 +528,7 @@ def create_reference_section(draw, width, height, margin, current_y):
     return current_y
 
 
-def create_recipient_section(draw, width, height, margin, current_y):
+def create_recipient_section(draw, width, height, margin, current_y):  # noqa: ARG001
     """
     Create a recipient section with taxpayer details.
     
@@ -724,7 +724,7 @@ def create_financial_section(draw, width, height, margin, current_y, doc_type):
     return current_y
 
 
-def create_bas_table(draw, width, height, margin, current_y):
+def create_bas_table(draw, width, height, margin, current_y):  # noqa: ARG001
     """
     Create a Business Activity Statement table.
     
@@ -855,7 +855,7 @@ def create_bas_table(draw, width, height, margin, current_y):
     return current_y
 
 
-def create_tax_assessment_table(draw, width, height, margin, current_y):
+def create_tax_assessment_table(draw, width, height, margin, current_y):  # noqa: ARG001
     """
     Create a tax assessment summary table.
     
@@ -1048,7 +1048,7 @@ def create_tax_assessment_table(draw, width, height, margin, current_y):
     return current_y
 
 
-def create_payment_table(draw, width, height, margin, current_y):
+def create_payment_table(draw, width, height, margin, current_y):  # noqa: ARG001
     """
     Create a payment summary table for government benefits.
     
@@ -1271,7 +1271,7 @@ def create_payment_table(draw, width, height, margin, current_y):
     return current_y
 
 
-def create_generic_table(draw, width, height, margin, current_y):
+def create_generic_table(draw, width, height, margin, current_y):  # noqa: ARG001
     """
     Create a generic financial table suitable for various document types.
     

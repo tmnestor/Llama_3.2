@@ -19,7 +19,7 @@ except ImportError:
             class Random:
                 def uniform(self, low, high):
                     return random.uniform(low, high)
-                def choice(self, arr, p=None, size=None):
+                def choice(self, arr, p=None, size=None):  # noqa: ARG002
                     if p is None:
                         return random.choice(arr)
                     # Simple weighted random choice
@@ -1761,17 +1761,17 @@ def generate_dataset(output_dir, num_collages=300, count_probs=None, image_size=
             print(f"Error generating collage {i}: {e}")
     
     # Create and save metadata
-    df = pd.DataFrame(data)
-    df.to_csv(output_dir / "metadata.csv", index=False)
+    receipt_metadata = pd.DataFrame(data)
+    receipt_metadata.to_csv(output_dir / "metadata.csv", index=False)
     
     # Print statistics
     print(f"\nDataset generation complete: {num_collages} images")
-    print(f"Distribution of receipt counts: {df['receipt_count'].value_counts().sort_index()}")
-    print(f"ATO tax documents (0 receipts): {len(df[df['receipt_count'] == 0])}")
+    print(f"Distribution of receipt counts: {receipt_metadata['receipt_count'].value_counts().sort_index()}")
+    print(f"ATO tax documents (0 receipts): {len(receipt_metadata[receipt_metadata['receipt_count'] == 0])}")
     print(f"High-resolution images: {image_size}×{image_size}")
     
     if stapled_ratio > 0:
-        stapled_count = df['is_stapled'].sum()
+        stapled_count = receipt_metadata['is_stapled'].sum()
         print(f"Stapled receipts: {stapled_count} ({stapled_count/num_collages:.1%})")
     
     # Split dataset functionality
@@ -1780,7 +1780,7 @@ def generate_dataset(output_dir, num_collages=300, count_probs=None, image_size=
         from sklearn.model_selection import train_test_split
         
         # Check if we have enough samples in each class for stratified split
-        class_counts = df['receipt_count'].value_counts()
+        class_counts = receipt_metadata['receipt_count'].value_counts()
         min_class_count = class_counts.min()
         
         if min_class_count >= 4:  # Need at least 2 samples per split (train/val/test)
@@ -1789,9 +1789,9 @@ def generate_dataset(output_dir, num_collages=300, count_probs=None, image_size=
             val_ratio = 0.15   # Fixed ratio for validation split
             
             train_df, temp_df = train_test_split(
-                df, 
+                receipt_metadata, 
                 train_size=train_ratio,
-                stratify=df['receipt_count'],
+                stratify=receipt_metadata['receipt_count'],
                 random_state=42
             )
             
@@ -1812,7 +1812,7 @@ def generate_dataset(output_dir, num_collages=300, count_probs=None, image_size=
         # Manual split if sklearn is not available or not enough samples
         print(f"Using non-stratified split: {e}")
         # Shuffle the dataframe
-        df_shuffled = df.sample(frac=1, random_state=42)
+        df_shuffled = receipt_metadata.sample(frac=1, random_state=42)
         
         # Calculate split indices
         train_ratio = 0.7
@@ -1842,7 +1842,7 @@ def generate_dataset(output_dir, num_collages=300, count_probs=None, image_size=
     val_dist = val_df['receipt_count'].value_counts().sort_index()
     test_dist = test_df['receipt_count'].value_counts().sort_index()
     
-    for count in sorted(df['receipt_count'].unique()):
+    for count in sorted(receipt_metadata['receipt_count'].unique()):
         train_count = train_dist.get(count, 0)
         val_count = val_dist.get(count, 0)
         test_count = test_dist.get(count, 0)
@@ -1851,7 +1851,7 @@ def generate_dataset(output_dir, num_collages=300, count_probs=None, image_size=
         print(f"  Class {count}: {train_count} train, {val_count} val, {test_count} test "
               f"(total: {total_count})")
     
-    return df
+    return receipt_metadata
 
 
 if __name__ == "__main__":

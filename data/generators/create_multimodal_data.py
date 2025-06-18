@@ -517,18 +517,19 @@ def create_synthetic_multimodal_data(num_samples: int, output_dir: Union[str, Pa
             print(f"Generated {i + 1}/{num_samples} samples")
     
     # Create and save metadata
-    df = pd.DataFrame(data)
-    df.to_csv(output_dir / "metadata.csv", index=False)
+    metadata_df = pd.DataFrame(data)
+    metadata_df.to_csv(output_dir / "metadata.csv", index=False)
     
     # Save QA pairs as JSON for easier review
-    qa_data = df[["filename", "receipt_count", "question", "answer", "qa_pair_idx"]].to_dict(orient="records")
-    with open(output_dir / "qa_pairs.json", "w") as f:
+    qa_data = metadata_df[["filename", "receipt_count", "question", "answer", "qa_pair_idx"]].to_dict(orient="records")
+    qa_pairs_file = output_dir / "qa_pairs.json"
+    with qa_pairs_file.open("w") as f:
         json.dump(qa_data, f, indent=2)
     
     print(f"Dataset generation complete: {num_samples} images, {len(data)} QA pairs")
-    print(f"Distribution of receipt counts: {df['receipt_count'].value_counts().sort_index()}")
+    print(f"Distribution of receipt counts: {metadata_df['receipt_count'].value_counts().sort_index()}")
     
-    return df
+    return metadata_df
 
 
 def parse_args():
@@ -544,7 +545,7 @@ def parse_args():
 if __name__ == "__main__":
     args = parse_args()
     
-    df = create_synthetic_multimodal_data(
+    result_metadata = create_synthetic_multimodal_data(
         num_samples=args.num_samples,
         output_dir=args.output_dir,
         image_size=args.image_size,

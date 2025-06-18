@@ -23,12 +23,14 @@ from rich.progress import (
     TextColumn,
 )
 
-# Add project root to path
+# Add project root to path - must be done before local imports
 project_root = Path(__file__).resolve().parent.parent
-sys.path.append(str(project_root))
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
 
-from models.extractors.llama_vision_extractor import LlamaVisionExtractor
-from utils.cli import (
+# Local imports after path modification
+from models.extractors.llama_vision_extractor import LlamaVisionExtractor  # noqa: E402
+from utils.cli import (  # noqa: E402
     RichConfig,
     ensure_output_dir,
     log_system_args,
@@ -41,6 +43,15 @@ from utils.cli import (
 
 app = typer.Typer(help="Batch process receipts with Llama-Vision extractor")
 rich_config = RichConfig()
+
+# Default file patterns - module level constant to avoid B008
+DEFAULT_FILE_PATTERNS = ["*.jpg", "*.jpeg", "*.png", "*.bmp", "*.tiff"]
+
+# Typer option definitions - module level to avoid B008
+FILE_PATTERNS_OPTION = typer.Option(
+    None,
+    help="File patterns to match for image files"
+)
 
 
 def configure_logging(verbose: bool) -> None:
@@ -76,7 +87,7 @@ def find_image_files(input_dir: Path, patterns: List[str]) -> List[Path]:
 def process(
     input_dir: str = typer.Argument(..., help="Directory containing receipt images"),
     model_path: str = typer.Option(
-        "/efs/shared/models/Llama-3.2-11B-Vision",
+        "/Users/tod/PretrainedLLM/Llama-3.2-1B-Vision",
         "--model-path", "-m",
         help="Path to Llama-Vision model"
     ),
@@ -85,19 +96,14 @@ def process(
         "--output-dir", "-o",
         help="Directory to save extraction results"
     ),
-    file_patterns: List[str] = typer.Option(
-        ["*.jpg", "*.jpeg", "*.png", "*.bmp", "*.tiff"],
-        "--file-patterns", "-p",
-        help="File patterns to match for image files"
-    ),
+    file_patterns: Optional[List[str]] = FILE_PATTERNS_OPTION,
     use_8bit: bool = typer.Option(
         False,
         "--use-8bit",
         help="Use 8-bit quantization for memory efficiency"
     ),
     device: str = typer.Option(
-        "cuda" if torch.cuda.is_available() else "cpu",
-        "--device", "-d",
+        default="auto",
         help="Device to run extraction on"
     ),
     max_files: Optional[int] = typer.Option(
@@ -117,6 +123,10 @@ def process(
     ),
 ):
     """Batch process multiple receipt images for information extraction."""
+    # Set default file patterns if not provided
+    if file_patterns is None:
+        file_patterns = DEFAULT_FILE_PATTERNS
+    
     # Configure logging
     configure_logging(verbose)
     logger = logging.getLogger(__name__)
@@ -235,8 +245,8 @@ def process(
         )
         
         # Save as CSV for easy analysis
-        df = pd.json_normalize(results)
-        df.to_csv(output_dir_obj / "batch_results.csv", index=False)
+        results_df = pd.json_normalize(results)
+        results_df.to_csv(output_dir_obj / "batch_results.csv", index=False)
         
         # Save summary statistics
         successful_extractions = len([r for r in results if r.get("processing_status") == "success"])
@@ -281,7 +291,7 @@ def process(
         print_error(rich_config, f"Batch processing failed: {e}")
         if verbose:
             rich_config.console.print_exception()
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 if __name__ == "__main__":

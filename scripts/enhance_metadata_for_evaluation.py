@@ -22,11 +22,13 @@ from rich.progress import (
     TextColumn,
 )
 
-# Add project root to path for utils import
+# Add project root to path - must be done before local imports
 project_root = Path(__file__).resolve().parent.parent
-sys.path.append(str(project_root))
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
 
-from utils.cli import (
+# Local imports after path modification
+from utils.cli import (  # noqa: E402
     RichConfig,
     ensure_output_dir,
     print_error,
@@ -184,13 +186,13 @@ def enhance(
             task = progress.add_task("Loading metadata...", total=None)
             print_info(rich_config, f"Loading metadata from: {input_path}")
             
-            df = pd.read_csv(input_path)
-            progress.update(task, total=len(df), completed=0, description="Enhancing metadata...")
+            metadata_df = pd.read_csv(input_path)
+            progress.update(task, total=len(metadata_df), completed=0, description="Enhancing metadata...")
             
             # Generate enhanced metadata
             enhanced_data = []
             
-            for _i, (_, row) in enumerate(df.iterrows()):
+            for _i, (_, row) in enumerate(metadata_df.iterrows()):
                 enhanced = generate_receipt_metadata(
                     filename=row['filename'],
                     receipt_count=row['receipt_count'],
@@ -225,7 +227,7 @@ def enhance(
     except Exception as e:
         print_error(rich_config, f"Metadata enhancement failed: {e}")
         rich_config.console.print_exception()
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 if __name__ == "__main__":

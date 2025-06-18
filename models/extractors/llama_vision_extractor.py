@@ -1,5 +1,5 @@
 """
-Zero-shot receipt information extractor using Llama-3.2-11B-Vision.
+Zero-shot receipt information extractor using Llama-3.2-1B-Vision.
 
 This module implements ab initio (from first principles) receipt information extraction
 without requiring any receipt-specific training, using only the pre-trained capabilities
@@ -22,10 +22,10 @@ class LlamaVisionExtractor:
     
     def __init__(
         self,
-        model_path: str = "/Users/tod/PretrainedLLM/Llama-3.2-11B-Vision",
-        device: str = "cuda",
-        use_8bit: bool = True,
-        max_new_tokens: int = 1024,
+        model_path: str = "/Users/tod/PretrainedLLM/Llama-3.2-1B-Vision",
+        device: str = "auto",
+        use_8bit: bool = False,
+        max_new_tokens: int = 256,
     ):
         """Initialize the Llama-Vision extractor.
         
@@ -47,7 +47,7 @@ class LlamaVisionExtractor:
         # Load model with appropriate settings
         self.logger.info(f"Loading Llama-Vision model from {model_path}")
         
-        # Configure quantization if needed
+        # Configure quantization if needed (optional for 1B model)
         quantization_config = None
         if use_8bit and torch.cuda.is_available():
             try:
@@ -64,12 +64,28 @@ class LlamaVisionExtractor:
         self.tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
         self.model = AutoModelForCausalLM.from_pretrained(
             model_path,
-            device_map="auto" if torch.cuda.is_available() else None,
-            torch_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
+            device_map=None,  # Disable device mapping for custom models
+            torch_dtype=torch.float16 if torch.backends.mps.is_available() else torch.float32,
             quantization_config=quantization_config,
             trust_remote_code=True,
             local_files_only=True,
         )
+        
+        # Move model to appropriate device after loading
+        if device == "mps" and torch.backends.mps.is_available():
+            self.model = self.model.to("mps")
+            self.device = "mps"
+        elif device == "auto":
+            if torch.backends.mps.is_available():
+                self.model = self.model.to("mps") 
+                self.device = "mps"
+            elif torch.cuda.is_available():
+                self.model = self.model.to("cuda")
+                self.device = "cuda"
+            else:
+                self.device = "cpu"
+        else:
+            self.device = device
         
         # Set model to evaluation mode
         self.model.eval()
@@ -111,47 +127,35 @@ class LlamaVisionExtractor:
         Returns:
             Formatted extraction prompt
         """
-        base_prompt = """<image>
-
-You are a receipt information extraction assistant. Analyze the receipt in the image and extract the following information accurately.
-
-"""
+        # Optimized prompts for the 1B model - simpler and more direct
         
-        # Full extraction prompt (all fields)
-        full_extraction_prompt = base_prompt + """Extract ALL of the following information from the receipt:
-1. Store/Business Name
-2. Date of Purchase (YYYY-MM-DD format)
-3. Time of Purchase (HH:MM format)
-4. Total Amount (include currency)
-5. Payment Method
-6. Receipt Number/ID
-7. Individual Items (with prices)
-8. Tax Information (amount and/or percentage)
-9. Discounts/Promotions (if any)
-
-Provide your answer as a structured JSON object with these fields. For any field that cannot be found in the receipt, use null.
-Format your response as a valid JSON object only, with no additional commentary or explanation. Ensure that numeric values are formatted accordingly.
+        # Field-specific prompts (optimized for small model)
+        field_prompts = {
+            "store_name": "What is the store name on this receipt?",
+            "date": "What is the date on this receipt? Use format YYYY-MM-DD.",
+            "time": "What is the time on this receipt? Use format HH:MM.",
+            "total": "What is the total amount on this receipt?",
+            "total_amount": "What is the total amount on this receipt?",
+            "payment_method": "What payment method was used on this receipt?",
+            "receipt_id": "What is the receipt number or ID?",
+            "items": "List all items and prices from this receipt.",
+        }
+        
+        # Full extraction prompt (simplified for 1B model)
+        full_extraction_prompt = """Look at this receipt image and extract the following information in JSON format:
 
 {
-  "store_name": "...",
-  "date": "YYYY-MM-DD",
+  "store_name": "",
+  "date": "YYYY-MM-DD", 
   "time": "HH:MM",
-  "total_amount": "...",
-  "payment_method": "...",
-  "receipt_id": "...",
-  "items": [{"item_name": "...", "quantity": 1, "price": "..."}],
-  "tax_info": "...",
-  "discounts": "..."
-}"""
-        
-        # Field-specific prompts if needed
-        field_prompts = {
-            "store_name": base_prompt + "What is the store or business name on this receipt? Extract just the name.",
-            "date": base_prompt + "What is the date of purchase on this receipt? Format as YYYY-MM-DD.",
-            "total": base_prompt + "What is the total amount on this receipt? Include the currency symbol if visible.",
-            "items": base_prompt + """Extract all individual items with their prices from this receipt.
-Format your answer as a valid JSON array of objects with 'item_name', 'quantity', and 'price' fields.""",
-        }
+  "total_amount": "",
+  "payment_method": "",
+  "receipt_id": "",
+  "items": [{"item_name": "", "price": ""}],
+  "tax_info": ""
+}
+
+Fill in the actual values from the receipt. If a field is not visible, use null."""
         
         if field is not None and field in field_prompts:
             return field_prompts[field]
@@ -222,14 +226,48 @@ Format your answer as a valid JSON array of objects with 'item_name', 'quantity'
         Returns:
             Generated response text
         """
-        # Handle the multimodal input for Llama-Vision
-        # Note: The exact implementation may vary based on the specific Llama-Vision variant
-        # This is a general approach for vision-language models
-        
-        with torch.no_grad():
-            # For models that support direct image-text input
-            if hasattr(self.model, 'chat'):
-                # Use chat interface if available
+        try:
+            # Check if this is the custom Llamavision model with answer_question method
+            if hasattr(self.model, 'answer_question'):
+                # Use the built-in answer_question method (recommended approach)
+                self.logger.debug("Using Llamavision answer_question interface")
+                
+                response = self.model.answer_question(
+                    image=image,
+                    question=prompt,
+                    tokenizer=self.tokenizer,
+                    max_new_tokens=self.max_new_tokens,
+                    do_sample=False,
+                    temperature=0.1,
+                )
+                
+            elif hasattr(self.model, 'encode_image') and hasattr(self.model, 'generate'):
+                # Custom Llamavision model (kadirnar/Llama-3.2-1B-Vision) - fallback method
+                self.logger.debug("Using custom Llamavision interface")
+                
+                # Encode the image
+                image_embeds = self.model.encode_image(image)
+                
+                # Generate response using the custom generate method
+                output_ids = self.model.generate(
+                    image_embeds=image_embeds,
+                    prompt=prompt,
+                    tokenizer=self.tokenizer,
+                    max_new_tokens=self.max_new_tokens,
+                    do_sample=False,
+                    temperature=0.1,
+                )
+                
+                # Decode the response
+                response = self.tokenizer.decode(output_ids[0], skip_special_tokens=True)
+                
+                # Remove the prompt from the response if it's included
+                if prompt in response:
+                    response = response.replace(prompt, "").strip()
+                    
+            elif hasattr(self.model, 'chat'):
+                # Standard chat interface (official models)
+                self.logger.debug("Using standard chat interface")
                 response = self.model.chat(
                     tokenizer=self.tokenizer,
                     messages=[{
@@ -243,27 +281,26 @@ Format your answer as a valid JSON array of objects with 'item_name', 'quantity'
                     max_new_tokens=self.max_new_tokens
                 )
             else:
-                # Fallback to standard generation with processor
-                # Note: This part may need adjustment based on the specific model implementation
+                # Fallback - text-only (shouldn't be used for vision models)
+                self.logger.warning("No vision interface found, falling back to text-only generation")
                 inputs = self.tokenizer(prompt, return_tensors="pt", padding=True, truncation=True)
                 inputs = {k: v.to(self.device) for k, v in inputs.items()}
                 
-                # Generate response
                 outputs = self.model.generate(
                     **inputs,
                     max_new_tokens=self.max_new_tokens,
                     temperature=0.1,
                     do_sample=False,
                     pad_token_id=self.tokenizer.eos_token_id,
-                    return_dict_in_generate=True,
-                    output_scores=False
                 )
                 
-                # Decode generated text
-                response = self.tokenizer.decode(outputs.sequences[0], skip_special_tokens=True)
-                # Remove the prompt from the response
+                response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
                 if prompt in response:
                     response = response.replace(prompt, "").strip()
+        
+        except Exception as e:
+            self.logger.error(f"Error in _generate_response: {e}")
+            return ""
         
         return response
     

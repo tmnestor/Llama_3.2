@@ -13,11 +13,13 @@ from typing import Optional
 import typer
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
-# Add project root to path
+# Add project root to path - must be done before local imports
 project_root = Path(__file__).resolve().parent
-sys.path.append(str(project_root))
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
 
-from utils.cli import RichConfig, print_error, print_info, print_success
+# Local imports after path modification
+from utils.cli import RichConfig, print_error, print_info, print_success  # noqa: E402
 
 app = typer.Typer(help="Download HuggingFace models for offline use")
 rich_config = RichConfig()
@@ -30,7 +32,7 @@ os.environ["NUMPY_EXPERIMENTAL_ARRAY_FUNCTION"] = "0"
 def download(
     model_name: str = typer.Argument(
         ..., 
-        help="HuggingFace model name to download (e.g., meta-llama/Llama-3.2-11B-Vision-Instruct)"
+        help="HuggingFace model name to download (e.g., meta-llama/Llama-3.2-1B-Vision-Instruct)"
     ),
     output_dir: Optional[str] = typer.Option(
         None,
@@ -80,10 +82,10 @@ def download(
         task = progress.add_task("Checking git LFS installation...", total=None)
         try:
             subprocess.check_call("git lfs version", shell=True, stdout=subprocess.DEVNULL)
-        except subprocess.CalledProcessError:
+        except subprocess.CalledProcessError as e:
             print_error(rich_config, "git-lfs not found")
             rich_config.console.print("Install git-lfs with: [dim]conda install -c conda-forge git-lfs[/dim]")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
         
         # Download model
         progress.update(task, description=f"Downloading {model_name}...")
@@ -103,7 +105,7 @@ def download(
             rich_config.console.print("  2. Verify model name is correct")
             rich_config.console.print("  3. Ensure you have HuggingFace access to the model")
             rich_config.console.print("  4. Try: [dim]huggingface-cli login[/dim]")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
     
     # Display success and usage instructions
     rich_config.console.print("\n[bold cyan]MODEL DOWNLOAD SUMMARY[/bold cyan]")

@@ -18,11 +18,16 @@ import numpy as np
 import typer
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
-# Add project root to path
+# Add project root to path - must be done before local imports
 project_root = Path(__file__).resolve().parent.parent.parent
-sys.path.append(str(project_root))
-from data.generators.receipt_generator import generate_dataset as create_receipts
-from utils.cli import RichConfig, print_error, print_info, print_success
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+# Local imports after path modification
+from data.generators.receipt_generator import (  # noqa: E402
+    generate_dataset as create_receipts,
+)
+from utils.cli import RichConfig, print_error, print_info, print_success  # noqa: E402
 
 app = typer.Typer(help="Generate synthetic receipt datasets")
 rich_config = RichConfig()
@@ -181,7 +186,7 @@ def generate(
     except Exception as e:
         print_error(rich_config, f"Dataset generation failed: {e}")
         rich_config.console.print_exception()
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 # HuggingFace Model Download Guide
 
-This guide explains how to use `huggingface_model_download.py` to download Llama-3.2-11B-Vision and other HuggingFace models for offline use in the receipt extraction system.
+This guide explains how to use `huggingface_model_download.py` to download Llama-3.2-1B-Vision-Instruct and other HuggingFace models for offline use in the receipt extraction system.
 
 ## Overview
 
@@ -50,18 +50,18 @@ huggingface-cli login
 python huggingface_model_download.py [MODEL_NAME] [OPTIONS]
 ```
 
-### Download Llama-3.2-11B-Vision
+### Download Llama-3.2-1B-Vision-Instruct
 
 ```bash
-# Download to default cache location (~/.cache/huggingface/models/)
-python huggingface_model_download.py meta-llama/Llama-3.2-11B-Vision-Instruct
+# Download to local PretrainedLLM directory (recommended for Mac M1/M2)
+python huggingface_model_download.py meta-llama/Llama-3.2-1B-Vision-Instruct \
+  --output-dir /Users/tod/PretrainedLLM/Llama-3.2-1B-Vision-Instruct
 
-# Download to specific directory
-python huggingface_model_download.py meta-llama/Llama-3.2-11B-Vision-Instruct \
-  --output-dir /efs/shared/models/Llama-3.2-11B-Vision
+# Download to default cache location
+python huggingface_model_download.py meta-llama/Llama-3.2-1B-Vision-Instruct
 
 # Download without environment check (for automation)
-python huggingface_model_download.py meta-llama/Llama-3.2-11B-Vision-Instruct \
+python huggingface_model_download.py meta-llama/Llama-3.2-1B-Vision-Instruct \
   --no-check-env
 ```
 
@@ -78,10 +78,14 @@ python huggingface_model_download.py meta-llama/Llama-3.2-11B-Vision-Instruct \
 ### Llama-3.2 Vision Models
 
 ```bash
-# 11B Vision-Instruct (recommended for receipt extraction)
+# 1B Vision-Instruct (recommended for Mac M1/M2 with 16GB RAM)
+python huggingface_model_download.py meta-llama/Llama-3.2-1B-Vision-Instruct \
+  --output-dir /Users/tod/PretrainedLLM/Llama-3.2-1B-Vision-Instruct
+
+# 11B Vision-Instruct (requires 32GB+ RAM)
 python huggingface_model_download.py meta-llama/Llama-3.2-11B-Vision-Instruct
 
-# 90B Vision-Instruct (requires more resources)
+# 90B Vision-Instruct (requires 256GB+ RAM)
 python huggingface_model_download.py meta-llama/Llama-3.2-90B-Vision-Instruct
 ```
 
@@ -99,17 +103,17 @@ python huggingface_model_download.py OpenGVLab/InternVL2-26B
 
 ## Example Workflows
 
-### 1. Local Development Setup
+### 1. Local Mac Development Setup
 
 ```bash
-# Download model locally for development
-python huggingface_model_download.py meta-llama/Llama-3.2-11B-Vision-Instruct \
-  --output-dir ~/models/Llama-3.2-11B-Vision
+# Download 1B model for Mac M1/M2 (16GB RAM compatible)
+python huggingface_model_download.py meta-llama/Llama-3.2-1B-Vision-Instruct \
+  --output-dir /Users/tod/PretrainedLLM/Llama-3.2-1B-Vision-Instruct
 
 # Test the downloaded model
-python scripts/test_llama_vision_extractor.py \
-  --model-path ~/models/Llama-3.2-11B-Vision \
-  test_receipt.jpg
+PYTHONPATH=. python scripts/test_llama_vision_extractor.py \
+  --model-path /Users/tod/PretrainedLLM/Llama-3.2-1B-Vision-Instruct \
+  test_receipt.png
 ```
 
 ### 2. Remote GPU Server Setup
@@ -164,6 +168,7 @@ model_directory/
 
 | Model | Size | RAM Requirements |
 |-------|------|------------------|
+| Llama-3.2-1B-Vision | ~3 GB | 16GB (Mac M1/M2 compatible) |
 | Llama-3.2-11B-Vision | ~22 GB | 32+ GB recommended |
 | Llama-3.2-90B-Vision | ~180 GB | 256+ GB required |
 

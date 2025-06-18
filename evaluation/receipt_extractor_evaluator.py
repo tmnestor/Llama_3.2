@@ -57,7 +57,7 @@ class ReceiptExtractorEvaluator:
         if path.is_file():
             # Load single file
             if path.suffix.lower() == ".json":
-                with open(path, "r") as f:
+                with path.open("r") as f:
                     data = json.load(f)
                     # Handle both single object and list of objects
                     return data if isinstance(data, list) else [data]
@@ -67,7 +67,7 @@ class ReceiptExtractorEvaluator:
             # Load all JSON files in directory
             data = []
             for json_file in path.glob("*.json"):
-                with open(json_file, "r") as f:
+                with json_file.open("r") as f:
                     file_data = json.load(f)
                     if json_file.name == "metadata.json":
                         # Handle metadata files that might contain lists
@@ -171,11 +171,13 @@ class ReceiptExtractorEvaluator:
         metrics = self._calculate_overall_metrics(field_metrics)
         
         # Save detailed results
-        with open(self.output_dir / "detailed_results.json", "w") as f:
+        detailed_results_file = self.output_dir / "detailed_results.json"
+        with detailed_results_file.open("w") as f:
             json.dump(results, f, indent=2, default=str)
         
         # Save summary metrics
-        with open(self.output_dir / "metrics_summary.json", "w") as f:
+        metrics_summary_file = self.output_dir / "metrics_summary.json"
+        with metrics_summary_file.open("w") as f:
             json.dump(metrics, f, indent=2)
         
         return metrics

@@ -2,6 +2,8 @@ name: llama_vision_env
 channels:
   - conda-forge
   - defaults
+variables:
+  KMP_DUPLICATE_LIB_OK: "TRUE"
 dependencies:
   - python=3.11
   - numpy
@@ -19,6 +21,7 @@ dependencies:
     - rich>=13.0.0
     - torch>=2.0.0
     - torchvision
+    - accelerate  # Required for MPS/device mapping support
     
     # Optional dependencies for remote GPU execution
     # Uncomment these on the remote host with GPU:
@@ -26,7 +29,7 @@ dependencies:
 
 # Usage Instructions:
 # -----------------
-# Local Development (Mac - 16GB RAM):
+# Local Development (Mac M1/M2 - 16GB RAM):
 # conda env create -f environment.yml
 # conda activate llama_vision_env
 # 
@@ -36,5 +39,5 @@ dependencies:
 # conda install pytorch torchvision pytorch-cuda=11.8 -c pytorch -c nvidia
 # pip install bitsandbytes
 #
-# Note: Local environment excludes PyTorch/GPU dependencies due to RAM limitations
-# All model inference must be performed on the remote GPU host
+# Note: KMP_DUPLICATE_LIB_OK=TRUE is automatically set to fix OpenMP library conflicts
+# The 1B Vision model is fully compatible with Mac M1/M2 16GB RAM
