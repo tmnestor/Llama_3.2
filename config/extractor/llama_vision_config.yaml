@@ -5,11 +5,11 @@ model:
   # Path to Llama-3.2-1B-Vision-Instruct model
   # Local Mac (16GB RAM compatible): "/Users/tod/PretrainedLLM/Llama-3.2-1B-Vision-Instruct"
   # Remote host: "/efs/shared/models/Llama-3.2-1B-Vision-Instruct"
-  model_path: "/Users/tod/PretrainedLLM/Llama-3.2-1B-Vision"
+  model_path: "/Users/tod/PretrainedLLM/Llama-3.2-11B-Vision"
   
   # Device configuration
   device: "auto"  # "auto" detects MPS/CUDA/CPU, "mps" for Mac M1/M2, "cpu" for CPU-only
-  use_8bit: false  # 8-bit quantization not needed for 1B model
+  use_8bit: true  # 8-bit quantization required for 11B model
   
   # Generation parameters
   max_new_tokens: 1024

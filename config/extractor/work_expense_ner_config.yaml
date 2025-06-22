@@ -1,0 +1,492 @@
+# Tax Invoice NER Configuration
+# Configurable entity types for Named Entity Recognition on tax invoices
+
+model:
+  model_path: "/Users/tod/PretrainedLLM/Llama-3.2-11B-Vision"
+  device: "auto"  # Auto-detect: CUDA > CPU (optimized for KFP Discovery)
+  use_8bit: false
+  max_new_tokens: 512  # Increased for better entity extraction
+  # GPU optimization settings for KFP Discovery
+  gpu_memory_fraction: 0.8  # Use 80% of available GPU memory
+  enable_memory_efficient_attention: true
+  enable_flash_attention: false  # Disable if compatibility issues occur
+
+# Tax Invoice Specific Entity Categories
+entities:
+  # Business and Organization Entities
+  BUSINESS_NAME:
+    description: "Name of the business/company issuing the invoice"
+    examples: ["ABC Corp", "Smith & Associates", "Green Valley Supplies"]
+    patterns: ["company", "business", "corporation", "ltd", "inc", "pty"]
+    
+  VENDOR_NAME:
+    description: "Supplier or vendor name"
+    examples: ["Office Depot", "Staples", "Amazon Business"]
+    patterns: ["vendor", "supplier", "from"]
+    
+  CLIENT_NAME:
+    description: "Customer or client name receiving the invoice"
+    examples: ["John Smith", "XYZ Company", "Department of Finance"]
+    patterns: ["client", "customer", "bill to", "sold to"]
+
+  # Financial Entities
+  TOTAL_AMOUNT:
+    description: "Total invoice amount including tax"
+    examples: ["$1,234.56", "AUD $1,234.56", "$1,234.56 AUD", "(AUD) $1,234.56", "€500.00", "£99.99"]
+    patterns: ["total", "amount due", "balance", "grand total"]
+    format: "currency"
+    
+  SUBTOTAL:
+    description: "Subtotal before tax"
+    examples: ["$1,000.00", "AUD $1,000.00", "$1,000.00 AUD", "€400.00", "£80.00"]
+    patterns: ["subtotal", "sub-total", "before tax", "net amount"]
+    format: "currency"
+    
+  TAX_AMOUNT:
+    description: "Tax amount (GST, VAT, sales tax)"
+    examples: ["$100.00", "AUD $100.00", "$100.00 AUD", "€50.00", "£15.99"]
+    patterns: ["tax", "gst", "vat", "sales tax", "hst"]
+    format: "currency"
+    
+  TAX_RATE:
+    description: "Tax percentage rate"
+    examples: ["10%", "15%", "20%"]
+    patterns: ["rate", "percent", "%"]
+    format: "percentage"
+
+  # Date and Time Entities  
+  INVOICE_DATE:
+    description: "Date the invoice was issued"
+    examples: ["2024-06-20", "June 20, 2024", "20/06/2024"]
+    patterns: ["date", "issued", "invoice date"]
+    format: "date"
+    
+  DUE_DATE:
+    description: "Payment due date"
+    examples: ["2024-07-20", "July 20, 2024", "30 days"]
+    patterns: ["due", "payment due", "pay by"]
+    format: "date"
+
+  # Identification Entities
+  INVOICE_NUMBER:
+    description: "Unique invoice identifier"
+    examples: ["INV-2024-001", "12345", "WE-240620-01"]
+    patterns: ["invoice", "number", "ref", "reference", "#"]
+    
+  ABN:
+    description: "Australian Business Number"
+    examples: ["12 345 678 901", "12345678901"]
+    patterns: ["abn", "australian business number"]
+    format: "abn"
+    
+  GST_NUMBER:
+    description: "GST registration number"
+    examples: ["123456789", "GST123456789"]
+    patterns: ["gst", "tax number", "registration"]
+    
+  PURCHASE_ORDER:
+    description: "Purchase order number"
+    examples: ["PO-2024-001", "PO12345"]
+    patterns: ["po", "purchase order", "order number"]
+
+  # Item and Service Entities
+  ITEM_DESCRIPTION:
+    description: "Description of goods or services"
+    examples: ["Office supplies", "Consulting services", "Software license"]
+    patterns: ["description", "item", "service", "product"]
+    
+  ITEM_QUANTITY:
+    description: "Quantity of items"
+    examples: ["1", "5 units", "2.5 hours"]
+    patterns: ["qty", "quantity", "units", "hours"]
+    format: "numeric"
+    
+  UNIT_PRICE:
+    description: "Price per unit"
+    examples: ["$50.00", "AUD $50.00", "$50.00 AUD", "€25.00", "£10.00"]
+    patterns: ["unit price", "rate", "each"]
+    format: "currency"
+    
+  LINE_TOTAL:
+    description: "Total for individual line item"
+    examples: ["$250.00", "AUD $250.00", "$250.00 AUD", "€125.00", "£50.00"]
+    patterns: ["total", "amount", "line total"]
+    format: "currency"
+
+  # Address Entities
+  BUSINESS_ADDRESS:
+    description: "Business address of invoice issuer"
+    examples: ["123 Main St, Sydney NSW 2000", "456 Oak Ave, Melbourne VIC 3000"]
+    patterns: ["address", "street", "suite", "level"]
+    
+  BILLING_ADDRESS:
+    description: "Billing address for payment"
+    examples: ["789 Pine St, Brisbane QLD 4000"]
+    patterns: ["billing", "bill to", "invoice to"]
+
+  # Payment Entities
+  PAYMENT_METHOD:
+    description: "Method of payment"
+    examples: ["Credit Card", "Bank Transfer", "Cheque", "PayPal"]
+    patterns: ["payment", "method", "pay by"]
+    
+  PAYMENT_TERMS:
+    description: "Payment terms and conditions"
+    examples: ["Net 30", "Due on receipt", "2/10 Net 30"]
+    patterns: ["terms", "payment terms", "conditions"]
+
+  # Contact Entities
+  CONTACT_PERSON:
+    description: "Contact person for the invoice"
+    examples: ["John Smith", "Jane Doe", "Accounts Receivable"]
+    patterns: ["contact", "attention", "attn"]
+    
+  PHONE_NUMBER:
+    description: "Contact phone number"
+    examples: ["+61 2 9876 5432", "(02) 9876 5432", "0298765432"]
+    patterns: ["phone", "tel", "mobile", "contact"]
+    format: "phone"
+    
+  EMAIL_ADDRESS:
+    description: "Contact email address"
+    examples: ["invoices@company.com", "john.smith@business.com.au"]
+    patterns: ["email", "e-mail", "@"]
+    format: "email"
+    
+  WEBSITE:
+    description: "Company website or web address"
+    examples: ["www.company.com.au", "https://business.com", "company.com.au"]
+    patterns: ["website", "web", "www", "http", "url"]
+    format: "url"
+
+  # Banking Entities
+  ACCOUNT_NUMBER:
+    description: "Bank account number"
+    examples: ["123456789", "12-3456-7890123", "123 456 789"]
+    patterns: ["account", "acc", "account no", "account number"]
+    format: "numeric"
+    
+  BSB:
+    description: "Bank State Branch code"
+    examples: ["012-345", "012345", "012 345"]
+    patterns: ["bsb", "bank state branch", "branch"]
+    format: "bsb"
+    
+  BANK_NAME:
+    description: "Name of the financial institution"
+    examples: ["Commonwealth Bank", "Westpac", "NAB", "ANZ"]
+    patterns: ["bank", "credit union", "building society"]
+    
+  ACCOUNT_HOLDER:
+    description: "Name of the account holder"
+    examples: ["John Smith", "Jane Doe Pty Ltd", "ABC Company"]
+    patterns: ["account holder", "account name", "customer"]
+    
+  TRANSACTION_DATE:
+    description: "Date of bank transaction"
+    examples: ["2024-06-20", "20/06/2024", "20 Jun 2024"]
+    patterns: ["date", "transaction date", "processed"]
+    format: "date"
+    
+  TRANSACTION_DESCRIPTION:
+    description: "Description of bank transaction"
+    examples: ["EFTPOS Purchase", "Direct Debit", "Online Transfer", "ATM Withdrawal"]
+    patterns: ["description", "details", "reference", "merchant"]
+    
+  WITHDRAWAL_AMOUNT:
+    description: "Amount withdrawn or debited from account"
+    examples: ["$50.00", "$1,234.56", "AUD $500.00"]
+    patterns: ["debit", "withdrawal", "dr", "out"]
+    format: "currency"
+    
+  DEPOSIT_AMOUNT:
+    description: "Amount deposited or credited to account"
+    examples: ["$1,000.00", "$2,500.50", "AUD $750.00"]
+    patterns: ["credit", "deposit", "cr", "in"]
+    format: "currency"
+    
+  ACCOUNT_BALANCE:
+    description: "Running account balance"
+    examples: ["$5,432.10", "$10,000.00", "AUD $15,678.90"]
+    patterns: ["balance", "running balance", "closing balance"]
+    format: "currency"
+    
+  STATEMENT_PERIOD:
+    description: "Statement period dates"
+    examples: ["01/06/2024 to 30/06/2024", "June 2024", "1 Jun - 30 Jun 2024"]
+    patterns: ["statement period", "period", "from", "to"]
+
+# NER Processing Configuration
+processing:
+  # Entity extraction strategy
+  extraction_method: "parallel"  # Extract all entities in single prompt for speed
+  
+  # Confidence thresholds
+  confidence_threshold: 0.5  # Lowered for testing
+  
+  # Post-processing rules
+  validation:
+    # Validate currency formats
+    currency_validation: true
+    # Validate date formats
+    date_validation: true
+    # Validate ABN format (Australian Business Number)
+    abn_validation: true
+    # Validate email formats
+    email_validation: true
+    # Validate phone number formats
+    phone_validation: true
+    # Validate URL/website formats
+    url_validation: true
+    # Validate BSB format (Bank State Branch codes)
+    bsb_validation: true
+    # Validate numeric formats (account numbers, etc.)
+    numeric_validation: true
+
+  # Output format
+  output_format: "csv"  # json, xml, or csv
+  include_confidence: true
+  include_positions: true  # Character positions in text
+  include_bounding_boxes: false  # Image coordinates (future feature)
+
+# Prompt Engineering for NER
+prompts:
+  # General NER prompt template
+  general_ner: |
+    Extract the following entity types from this document image: {entity_types}
+    
+    Return ONLY a valid JSON object in this exact format:
+    {{
+      "entities": [
+        {{"text": "extracted_value", "label": "ENTITY_TYPE", "confidence": 0.9}},
+        {{"text": "another_value", "label": "ANOTHER_TYPE", "confidence": 0.8}}
+      ]
+    }}
+    
+    Important:
+    - Extract exact text values, not descriptions
+    - For amounts: include currency symbol and exact amount (e.g., "$306.28")
+    - For dates: use format YYYY-MM-DD (e.g., "2020-10-17")
+    - For business names: extract the actual company name (e.g., "IGA")
+    - For ABN: extract the 11-digit number with spaces (e.g., "12 345 678 901")
+    - Return ONLY the JSON, no additional text
+
+  # Entity-specific prompts
+  specific_entity: |
+    Find all instances of {entity_type} in this tax invoice.
+    {entity_description}
+    Examples: {entity_examples}
+    
+    Return in JSON format with confidence scores.
+
+# Output Schema
+output_schema:
+  type: "object"
+  properties:
+    entities:
+      type: "array"
+      items:
+        type: "object"
+        properties:
+          text:
+            type: "string"
+            description: "The extracted entity text"
+          label:
+            type: "string"
+            description: "The entity type label"
+          confidence:
+            type: "number"
+            description: "Confidence score (0-1)"
+          start_pos:
+            type: "integer"
+            description: "Starting character position"
+          end_pos:
+            type: "integer"
+            description: "Ending character position"
+        required: ["text", "label"]
+    
+    document_type:
+      type: "string"
+      description: "Type of document (tax_invoice, receipt, etc.)"
+      
+    extraction_timestamp:
+      type: "string"
+      description: "When the extraction was performed"
+
+extraction:
+  # Confidence thresholds for different entity types
+  confidence_thresholds:
+    total_amount: 0.9
+    transaction_date: 0.85
+    business_name: 0.8
+    tax_amount: 0.9
+    payment_method: 0.7
+    item_name: 0.6
+    item_total_price: 0.8
+  
+  # Default confidence threshold
+  default_confidence_threshold: 0.75
+  
+  # Entity extraction settings
+  enable_business_entities: true
+  enable_financial_entities: true
+  enable_line_items: true
+  enable_tax_entities: true
+  
+  # Classification settings
+  enable_expense_categorization: true
+  enable_deductible_calculation: true
+
+validation:
+  # Required entities for valid extraction
+  required_entities:
+    - business_name
+    - total_amount
+  
+  # Validation rules
+  min_total_amount: 0.01
+  max_total_amount: 50000.0
+  require_positive_amounts: true
+  
+  # Human review triggers
+  low_confidence_threshold: 0.6
+  require_review_on_errors: true
+  require_review_on_high_amount: true
+  high_amount_threshold: 1000.0
+
+categories:
+  # Expense category classification
+  business_purpose_keywords:
+    car_expenses:
+      - "fuel"
+      - "petrol"
+      - "diesel"
+      - "parking"
+      - "toll"
+      - "car wash"
+      - "mechanic"
+      - "service"
+      - "automotive"
+    
+    meals_travel:
+      - "restaurant"
+      - "cafe"
+      - "hotel"
+      - "accommodation"
+      - "meal"
+      - "lunch"
+      - "dinner"
+      - "breakfast"
+      - "food"
+      - "catering"
+    
+    computer_software:
+      - "software"
+      - "license"
+      - "subscription"
+      - "cloud"
+      - "saas"
+      - "microsoft"
+      - "adobe"
+      - "google"
+      - "app"
+    
+    stationery:
+      - "office"
+      - "supplies"
+      - "paper"
+      - "pen"
+      - "notebook"
+      - "printer"
+      - "ink"
+      - "toner"
+      - "stationery"
+    
+    training_courses:
+      - "training"
+      - "course"
+      - "workshop"
+      - "seminar"
+      - "conference"
+      - "education"
+      - "certification"
+      - "learning"
+    
+    tools_equipment:
+      - "tools"
+      - "equipment"
+      - "hardware"
+      - "machinery"
+      - "instrument"
+      - "device"
+    
+    professional_memberships:
+      - "membership"
+      - "association"
+      - "professional"
+      - "institute"
+      - "society"
+      - "union"
+    
+    mobile_phone:
+      - "phone"
+      - "mobile"
+      - "cellular"
+      - "smartphone"
+      - "telecommunication"
+    
+    internet_phone:
+      - "internet"
+      - "broadband"
+      - "wifi"
+      - "data"
+      - "communication"
+
+  # Default deductible percentages by category
+  deductible_percentages:
+    car_expenses: 1.0  # 100% if purely business
+    public_transport: 1.0
+    taxi_rideshare: 1.0
+    parking_tolls: 1.0
+    accommodation: 1.0
+    meals_travel: 0.5  # 50% for meals while travelling
+    training_courses: 1.0
+    conferences_seminars: 1.0
+    professional_memberships: 1.0
+    subscriptions: 1.0
+    tools_equipment: 1.0
+    protective_clothing: 1.0
+    uniforms: 1.0
+    computer_software: 1.0
+    mobile_phone: 0.5  # 50% for mixed use
+    home_office_running: 0.2  # 20% for home office portion
+    internet_phone: 0.3  # 30% for business use
+    stationery: 1.0
+    union_fees: 1.0
+    income_protection: 1.0
+    work_related_insurance: 1.0
+    personal_expenses: 0.0  # Not deductible
+    private_use: 0.0  # Not deductible
+
+output:
+  # Output formatting
+  include_confidence_scores: true
+  include_validation_status: true
+  include_text_spans: true
+  include_raw_extraction: false
+  
+  # File output settings
+  save_individual_entities: true
+  save_line_items: true
+  save_validation_details: true
+  
+  # JSON output formatting
+  indent_json: 2
+  sort_keys: true
+
+logging:
+  # Logging configuration
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  log_extractions: true
+  log_validation_errors: true
+  log_confidence_warnings: true
