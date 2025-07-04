@@ -90,8 +90,13 @@ tax_invoice_ner/
 - **Keep Llama-3.2-Vision-11B**: Retain proven model with superior entity extraction
 - **Adopt InternVL's architecture**: Modular design with environment optimization
 - **Hybrid deployment**: Optimize for both high-memory (production) and low-memory (development) environments
+- **GPU Configuration Strategy**: Automatic detection and optimization for different hardware:
+  - **Multi-GPU (2+ GPUs)**: Balanced model splitting (~10GB per GPU)
+  - **Single GPU (≥20GB)**: Full model loading on single GPU
+  - **Single GPU (<20GB)**: CPU offloading for V100 16GB compatibility
+  - **CPU/MPS**: Fallback for systems without CUDA
 
-**🎯 Recommendation:** Retain Llama-3.2-11B-Vision model while adopting InternVL's superior architecture and deployment patterns.
+**🎯 Recommendation:** Retain Llama-3.2-11B-Vision model while adopting InternVL's superior architecture and deployment patterns with comprehensive GPU configuration strategies.
 
 ### 2. Configuration Management
 
@@ -246,22 +251,34 @@ class Config:
 class LlamaModelManager:
     def __init__(self, model_path: str):
         self.model_path = Path(model_path)
-        self.device = self._detect_optimal_device()
+        self.device, self.num_devices = self._detect_optimal_device()
         self.model = self._load_optimized_model()
     
     def _detect_optimal_device(self):
         if torch.cuda.is_available():
-            return "cuda"
+            num_gpus = torch.cuda.device_count()
+            return "cuda", num_gpus
         elif torch.backends.mps.is_available():
-            return "mps"
+            return "mps", 1
         else:
-            return "cpu"
+            return "cpu", 1
     
     def _load_optimized_model(self):
-        # Apply InternVL's optimization patterns to Llama loading
-        # Memory optimization for 22GB model
-        # Device-specific optimizations
-        pass
+        # Apply GPU configuration strategies
+        if self.device == "cuda" and self.num_devices > 1:
+            # Multi-GPU: Balanced splitting
+            return self._load_multi_gpu_balanced()
+        elif self.device == "cuda" and self.num_devices == 1:
+            gpu_memory = torch.cuda.get_device_properties(0).total_memory / (1024**3)
+            if gpu_memory < 20:
+                # V100 16GB: CPU offloading
+                return self._load_single_gpu_cpu_offload(gpu_memory)
+            else:
+                # Full GPU loading
+                return self._load_single_gpu_full()
+        else:
+            # CPU/MPS fallback
+            return self._load_cpu_mps()
 
 # Extraction with optimized Llama model
 class OptimizedLlamaExtractor:
@@ -275,9 +292,16 @@ class OptimizedLlamaExtractor:
 
 **Implementation Steps:**
 
-1. **Optimize Llama model loading** using InternVL's device detection patterns
+1. **Optimize Llama model loading** using InternVL's device detection patterns:
+   - Multi-GPU balanced splitting for 2+ GPUs
+   - Single GPU full loading for ≥20GB VRAM
+   - CPU offloading for V100 16GB compatibility
+   - Automatic hardware detection and configuration
 2. **Implement KEY-VALUE extraction** with Llama model
-3. **Add memory optimization** for 22GB model requirements
+3. **Add memory optimization** strategies:
+   - GPU memory flush before model loading
+   - Adaptive memory allocation based on hardware
+   - Disk offload cache for extreme cases
 4. **Create environment-based configuration** for model paths
 5. **Preserve existing entity definitions** and Australian compliance features
 
@@ -456,23 +480,40 @@ class ComplianceEvaluator:
 # Environment detection and optimization
 def auto_detect_environment():
     if torch.cuda.is_available():
-        return "cuda", torch.cuda.device_count()
+        num_gpus = torch.cuda.device_count()
+        gpu_memory = torch.cuda.get_device_properties(0).total_memory / (1024**3)
+        return "cuda", num_gpus, gpu_memory
     elif torch.backends.mps.is_available():
-        return "mps", 1
+        return "mps", 1, None
     else:
-        return "cpu", 1
+        return "cpu", 1, None
 
 # Model optimization based on environment
-def optimize_model_for_environment(model, device_type, num_devices):
+def optimize_model_for_environment(model_path, device_type, num_devices, gpu_memory):
     if device_type == "cuda" and num_devices > 1:
-        return model.to("cuda")  # Multi-GPU
+        # Multi-GPU: Balanced splitting
+        return load_multi_gpu_balanced(model_path)
     elif device_type == "cuda" and num_devices == 1:
-        return model.to("cuda").quantize()  # 8-bit quantization
+        if gpu_memory and gpu_memory < 20:
+            # V100 16GB: CPU offloading
+            return load_with_cpu_offloading(model_path, gpu_memory)
+        else:
+            # Single GPU: Full loading
+            return load_single_gpu(model_path)
     elif device_type == "mps":
-        return model.to("mps")  # Apple Silicon
+        # Apple Silicon optimization
+        return load_mps_optimized(model_path)
     else:
-        return model.to("cpu")  # CPU fallback
+        # CPU fallback
+        return load_cpu_fallback(model_path)
 ```
+
+**Supported Hardware Configurations:**
+- **Multi-GPU**: 2x RTX 3090, 2x A100, 4x V100
+- **Single GPU (≥20GB)**: RTX 3090/4090, A100, H100
+- **Single GPU (<20GB)**: V100 16GB with CPU offloading
+- **Apple Silicon**: M1/M2/M3 with MPS acceleration
+- **CPU**: Fallback for systems without GPU
 
 ---
 
@@ -582,11 +623,13 @@ class MigrationTester:
 
 | Metric | Current | Target | Improvement |
 |--------|---------|---------|-------------|
-| **Memory Usage** | 22GB+ VRAM | 22GB VRAM (optimized) | **Better memory management** |
+| **Memory Usage** | 22GB+ VRAM | 14-22GB VRAM (adaptive) | **V100 16GB support via CPU offloading** |
 | **Mac M1 Compatibility** | Limited | Enhanced MPS support | **Improved acceleration** |
+| **Multi-GPU Support** | None | Balanced splitting | **~10GB per GPU distribution** |
 | **Processing Speed** | Slow on consumer hardware | Architecture-optimized | **20-30% faster** |
 | **Model Loading** | 30+ seconds | Optimized loading | **40% faster** |
 | **Extraction Quality** | High | **Maintained high** | **Preserved accuracy** |
+| **Hardware Compatibility** | Mac M1 only | Cross-platform | **V100, RTX 3090, A100, H100 support** |
 
 ### 2. Architecture Benefits
 

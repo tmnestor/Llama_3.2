@@ -221,16 +221,71 @@ TAX_INVOICE_NER_DEVICE=auto    # Auto-detect (default)
 TAX_INVOICE_NER_DEVICE=cuda    # Force CUDA
 TAX_INVOICE_NER_DEVICE=cpu     # Force CPU
 TAX_INVOICE_NER_DEVICE=mps     # Force MPS (Apple Silicon)
+
+# V100 optimization variables
+PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512  # Reduce memory fragmentation
+CUDA_LAUNCH_BLOCKING=0                         # Async CUDA operations
+TOKENIZERS_PARALLELISM=false                   # Avoid tokenizer warnings
+```
+
+## V100 16GB Optimization Packages
+
+### Recommended Installation
+
+```bash
+# Core optimization packages
+pip install accelerate>=0.25.0      # Device mapping and model sharding
+pip install safetensors>=0.4.0      # Faster loading, lower memory overhead
+pip install bitsandbytes>=0.41.0    # 8-bit quantization (future enhancement)
+
+# Memory monitoring and management
+pip install nvidia-ml-py3           # NVIDIA Management Library
+pip install gpustat                 # GPU status monitoring
+pip install pynvml                  # Python NVIDIA bindings
+pip install nvitop                  # Interactive GPU process viewer
+
+# Performance enhancement
+pip install pillow-simd             # Faster image processing
+pip install datasets>=2.14.0        # Memory-mapped data loading
+
+# Optional advanced optimizations
+# conda install -c nvidia apex      # Mixed precision training
+# pip install flash-attn>=2.0.0     # Memory-efficient attention
+# pip install triton>=2.0.0         # GPU kernel compiler
+```
+
+### V100-Specific Code Optimizations
+
+```python
+# Enable TF32 for V100 (faster matrix operations)
+torch.backends.cuda.matmul.allow_tf32 = True
+torch.backends.cudnn.allow_tf32 = True
+
+# Memory-efficient settings
+torch.cuda.empty_cache()  # Clear cache before loading
+torch.cuda.set_per_process_memory_fraction(0.95)  # Use 95% of GPU memory
+
+# For future 8-bit quantization support
+from transformers import BitsAndBytesConfig
+
+quantization_config = BitsAndBytesConfig(
+    load_in_8bit=True,
+    bnb_8bit_compute_dtype=torch.float16,
+    bnb_8bit_use_double_quant=True,
+    bnb_8bit_quant_type="nf4"
+)
+# This would reduce model from ~20GB to ~11GB
 ```
 
 ## Future Enhancements
 
 ### Planned Features
 
-1. **8-bit Quantization**: Reduce V100 memory usage to ~10GB
+1. **8-bit Quantization**: Reduce V100 memory usage to ~11GB (no CPU offloading needed)
 2. **Dynamic Batch Sizing**: Optimize batch size based on available memory
 3. **Model Pruning**: Remove unused layers for specific document types
 4. **Gradient Checkpointing**: Trade compute for memory in training scenarios
+5. **TensorRT Integration**: Optimize inference speed on V100
 
 ### Hardware Roadmap
 
