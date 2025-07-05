@@ -1,3 +1,0 @@
-# Place your Hugging Face token here for download scripts
-# This file should be kept private and not committed to git
-# Add to .gitignore: *token*
