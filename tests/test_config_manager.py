@@ -49,7 +49,9 @@ class TestConfigManager:
             config_path = f.name
 
         try:
-            with pytest.raises(ValueError, match="Missing required configuration section"):
+            with pytest.raises(
+                ValueError, match="Missing required configuration section"
+            ):
                 ConfigManager(config_path)
         finally:
             Path(config_path).unlink(missing_ok=True)
@@ -84,7 +86,10 @@ class TestConfigManager:
 
         assert "description" in entity_config
         assert "examples" in entity_config
-        assert entity_config["description"] == "Name of the business/company issuing the invoice"
+        assert (
+            entity_config["description"]
+            == "Name of the business/company issuing the invoice"
+        )
 
     def test_get_entity_config_invalid(self, config_manager: ConfigManager):
         """Test getting configuration for non-existent entity."""

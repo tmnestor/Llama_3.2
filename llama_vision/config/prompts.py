@@ -1,8 +1,4 @@
-#!/usr/bin/env python3
-"""Prompt configuration loader for Llama-3.2-Vision system.
-
-Following InternVL PoC best practices for YAML prompt management.
-"""
+"""Prompt management for Llama-3.2-Vision package."""
 
 import os
 from pathlib import Path
@@ -10,47 +6,51 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
+from .settings import get_project_root
 
-class PromptConfig:
-    """Manages prompt configuration loading and selection."""
 
-    def __init__(self, config_path: Optional[str] = None):
-        """Initialize prompt configuration.
+class PromptManager:
+    """Manage prompts following InternVL pattern."""
+
+    def __init__(self, prompts_path: Optional[str] = None):
+        """Initialize prompt manager.
 
         Args:
-            config_path: Path to prompts.yaml file. If None, uses environment
-                        variable or searches for file in current directory.
+            prompts_path: Path to prompts.yaml file. If None, uses environment
+                         variable or searches for file in current directory.
         """
         self.prompts: Dict[str, Any] = {}
         self.metadata: Dict[str, Any] = {}
-        self._load_prompts(config_path)
+        self._load_prompts(prompts_path)
 
-    def _load_prompts(self, config_path: Optional[str] = None) -> None:
+    def _load_prompts(self, prompts_path: Optional[str] = None) -> None:
         """Load prompts from YAML configuration file."""
         # Determine config file path
-        if config_path:
-            prompts_path = Path(config_path)
+        if prompts_path:
+            config_path = Path(prompts_path)
         else:
             # Check environment variable first
             env_path = os.getenv("LLAMA_VISION_PROMPTS_PATH")
             if env_path:
-                prompts_path = Path(env_path)
+                config_path = Path(env_path)
             else:
                 # Search in current directory and common locations
+                project_root = get_project_root()
                 search_paths = [
+                    project_root / "prompts.yaml",
                     Path("./prompts.yaml"),
                     Path("./config/prompts.yaml"),
                     Path("../prompts.yaml"),
                     Path("./data/prompts.yaml"),
                 ]
 
-                prompts_path = None
+                config_path = None
                 for path in search_paths:
                     if path.exists():
-                        prompts_path = path
+                        config_path = path
                         break
 
-                if prompts_path is None:
+                if config_path is None:
                     raise FileNotFoundError(
                         "Could not find prompts.yaml file. Please specify path or set "
                         "LLAMA_VISION_PROMPTS_PATH environment variable."
@@ -58,19 +58,17 @@ class PromptConfig:
 
         # Load YAML configuration
         try:
-            with prompts_path.open("r", encoding="utf-8") as f:
+            with config_path.open("r", encoding="utf-8") as f:
                 config = yaml.safe_load(f)
 
             # Extract prompts and metadata
             self.metadata = config.pop("prompt_metadata", {})
             self.prompts = config
 
-            print(f"✅ Loaded {len(self.prompts)} prompts from {prompts_path}")
+            print(f"✅ Loaded {len(self.prompts)} prompts from {config_path}")
 
         except Exception as e:
-            raise RuntimeError(
-                f"Failed to load prompts from {prompts_path}: {e}"
-            ) from e
+            raise RuntimeError(f"Failed to load prompts from {config_path}: {e}") from e
 
     def get_prompt(self, prompt_name: str) -> str:
         """Get a specific prompt by name.
@@ -122,70 +120,35 @@ class PromptConfig:
         """Get prompts suitable for testing and debugging."""
         return self.metadata.get("testing_prompts", ["vision_test_prompt"])
 
+    def get_prompt_with_fallback(
+        self, primary_prompt: str, fallback_prompts: Optional[List[str]] = None
+    ) -> str:
+        """Get a prompt with fallback options.
 
-def load_prompt_config(config_path: Optional[str] = None) -> PromptConfig:
-    """Load prompt configuration from YAML file.
+        Args:
+            primary_prompt: Primary prompt name to try
+            fallback_prompts: List of fallback prompt names
 
-    Args:
-        config_path: Optional path to prompts.yaml file
-
-    Returns:
-        PromptConfig instance
-    """
-    return PromptConfig(config_path)
-
-
-def get_prompt_with_fallback(
-    prompt_config: PromptConfig,
-    primary_prompt: str,
-    fallback_prompts: Optional[List[str]] = None,
-) -> str:
-    """Get a prompt with fallback options.
-
-    Args:
-        prompt_config: PromptConfig instance
-        primary_prompt: Primary prompt name to try
-        fallback_prompts: List of fallback prompt names
-
-    Returns:
-        The first available prompt text
-    """
-    # Try primary prompt first
-    try:
-        return prompt_config.get_prompt(primary_prompt)
-    except KeyError:
-        pass
-
-    # Try fallback prompts
-    if fallback_prompts is None:
-        fallback_prompts = prompt_config.get_fallback_prompts()
-
-    for fallback in fallback_prompts:
+        Returns:
+            The first available prompt text
+        """
+        # Try primary prompt first
         try:
-            return prompt_config.get_prompt(fallback)
+            return self.get_prompt(primary_prompt)
         except KeyError:
-            continue
+            pass
 
-    # Last resort - return a basic prompt
-    return "<|image|>Extract information from this receipt: date, store, total, tax."
+        # Try fallback prompts
+        if fallback_prompts is None:
+            fallback_prompts = self.get_fallback_prompts()
 
+        for fallback in fallback_prompts:
+            try:
+                return self.get_prompt(fallback)
+            except KeyError:
+                continue
 
-# Example usage and testing
-if __name__ == "__main__":
-    # Test the prompt configuration
-    try:
-        config = load_prompt_config()
-
-        print(f"Loaded prompts: {', '.join(config.list_prompts())}")
-        print(f"Recommended prompts: {config.get_recommended_prompts()}")
-
-        # Test getting specific prompts
-        receipt_prompt = config.get_prompt_for_document_type("receipt")
-        print(f"\nReceipt prompt preview: {receipt_prompt[:100]}...")
-
-        # Test fallback mechanism
-        safe_prompt = get_prompt_with_fallback(config, "nonexistent_prompt")
-        print(f"\nFallback prompt preview: {safe_prompt[:100]}...")
-
-    except Exception as e:
-        print(f"Error testing prompt config: {e}")
+        # Last resort - return a basic prompt
+        return (
+            "<|image|>Extract information from this receipt: date, store, total, tax."
+        )

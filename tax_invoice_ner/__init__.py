@@ -6,8 +6,9 @@ Llama-3.2-Vision with YAML-based entity configuration.
 """
 
 from tax_invoice_ner.config.config_manager import ConfigManager
-from tax_invoice_ner.extractors.work_expense_ner_extractor import WorkExpenseNERExtractor
-
+from tax_invoice_ner.extractors.work_expense_ner_extractor import (
+    WorkExpenseNERExtractor,
+)
 
 __version__ = "1.0.0"
 __author__ = "Tax Invoice NER Team"

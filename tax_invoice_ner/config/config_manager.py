@@ -22,7 +22,9 @@ class ConfigManager:
             config_path: Path to YAML configuration file
         """
         self.logger = logging.getLogger(__name__)
-        self.config_path = config_path or "config/extractor/work_expense_ner_config.yaml"
+        self.config_path = (
+            config_path or "config/extractor/work_expense_ner_config.yaml"
+        )
         self.config = self.load_config(self.config_path)
 
     def load_config(self, config_path: str) -> dict[str, Any]:

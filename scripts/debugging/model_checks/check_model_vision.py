@@ -30,7 +30,7 @@ print(f"   Has vision_model: {hasattr(model, 'vision_model')}")
 print(f"   Has language_model: {hasattr(model, 'language_model')}")
 print(f"   Has multi_modal_projector: {hasattr(model, 'multi_modal_projector')}")
 
-if hasattr(model, 'vision_model'):
+if hasattr(model, "vision_model"):
     print(f"   Vision model type: {type(model.vision_model)}")
     print(f"   Vision model device: {next(model.vision_model.parameters()).device}")
 
@@ -45,7 +45,7 @@ print("\n4. Checking model config:")
 config = model.config
 print(f"   Model type: {config.model_type}")
 print(f"   Vision config exists: {hasattr(config, 'vision_config')}")
-if hasattr(config, 'vision_config'):
+if hasattr(config, "vision_config"):
     print(f"   Vision hidden size: {config.vision_config.hidden_size}")
     print(f"   Vision patch size: {config.vision_config.patch_size}")
 
@@ -53,21 +53,21 @@ if hasattr(config, 'vision_config'):
 print("\n5. Testing vision processing:")
 try:
     # Create a dummy image
-    dummy_image = Image.new('RGB', (224, 224), color='red')
-    
+    dummy_image = Image.new("RGB", (224, 224), color="red")
+
     # Process image
     image_inputs = processor.image_processor(images=dummy_image, return_tensors="pt")
     print("   ✅ Image processing successful")
     print(f"   Image tensor shape: {image_inputs['pixel_values'].shape}")
-    
+
     # Check if vision model can process it
-    if hasattr(model, 'vision_model'):
+    if hasattr(model, "vision_model"):
         with torch.no_grad():
             # Get vision features
             vision_outputs = model.vision_model(
-                pixel_values=image_inputs['pixel_values'].to(model.device),
-                aspect_ratio_ids=image_inputs.get('aspect_ratio_ids', None),
-                aspect_ratio_mask=image_inputs.get('aspect_ratio_mask', None),
+                pixel_values=image_inputs["pixel_values"].to(model.device),
+                aspect_ratio_ids=image_inputs.get("aspect_ratio_ids", None),
+                aspect_ratio_mask=image_inputs.get("aspect_ratio_mask", None),
             )
             print("   ✅ Vision model forward pass successful")
             print(f"   Vision output shape: {vision_outputs[0].shape}")
@@ -77,39 +77,41 @@ except Exception as e:
 # Check for vision-related parameters
 print("\n6. Checking vision parameters:")
 total_params = sum(p.numel() for p in model.parameters())
-if hasattr(model, 'vision_model'):
+if hasattr(model, "vision_model"):
     vision_params = sum(p.numel() for p in model.vision_model.parameters())
     print(f"   Total parameters: {total_params:,}")
     print(f"   Vision parameters: {vision_params:,}")
-    print(f"   Vision params %: {vision_params/total_params*100:.1f}%")
+    print(f"   Vision params %: {vision_params / total_params * 100:.1f}%")
 
 # Test with actual prompt
 print("\n7. Testing with vision-aware prompt:")
 try:
     test_prompt = "USER: <image>\nWhat do you see in this image?\nASSISTANT:"
-    
+
     # Tokenize
     inputs = processor.tokenizer(test_prompt, return_tensors="pt")
     print(f"   Tokenized prompt length: {inputs['input_ids'].shape[1]}")
-    
+
     # Check for image token
     image_token_id = processor.tokenizer.convert_tokens_to_ids("<image>")
     print(f"   Image token ID: {image_token_id}")
-    print(f"   Image token in input: {image_token_id in inputs['input_ids'][0].tolist()}")
-    
+    print(
+        f"   Image token in input: {image_token_id in inputs['input_ids'][0].tolist()}"
+    )
+
 except Exception as e:
     print(f"   ❌ Prompt test failed: {e}")
 
-print("\n" + "="*50)
+print("\n" + "=" * 50)
 print("DIAGNOSIS:")
 
 # Diagnosis
-if hasattr(model, 'vision_model') and hasattr(model, 'multi_modal_projector'):
+if hasattr(model, "vision_model") and hasattr(model, "multi_modal_projector"):
     print("✅ Model has vision components loaded")
 else:
     print("❌ Vision components missing!")
 
-if hasattr(processor, 'image_processor'):
+if hasattr(processor, "image_processor"):
     print("✅ Processor can handle images")
 else:
     print("❌ Image processor missing!")
@@ -120,7 +122,7 @@ model_path_obj = Path(model_path)
 model_files = list(model_path_obj.iterdir())
 print(f"   Files in model directory: {len(model_files)}")
 for f in sorted(model_files):
-    if any(keyword in f.name.lower() for keyword in ['vision', 'image', 'multimodal']):
+    if any(keyword in f.name.lower() for keyword in ["vision", "image", "multimodal"]):
         print(f"   - {f.name}")
 
 print("\nIf vision components are missing, the model may need to be re-downloaded.")

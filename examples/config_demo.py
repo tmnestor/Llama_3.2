@@ -9,7 +9,6 @@ import logging
 
 from tax_invoice_ner import ConfigManager
 
-
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -54,7 +53,9 @@ def main():
         processing_config = config_manager.get_processing_config()
         logger.info("\n⚙️  Processing Configuration:")
         logger.info(f"  • Extraction method: {processing_config['extraction_method']}")
-        logger.info(f"  • Confidence threshold: {config_manager.get_confidence_threshold()}")
+        logger.info(
+            f"  • Confidence threshold: {config_manager.get_confidence_threshold()}"
+        )
 
         # Display validation settings
         validation_config = config_manager.get_validation_config()

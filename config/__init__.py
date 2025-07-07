@@ -1,6 +1,7 @@
 """
 Configuration module for Llama-Vision receipt extractor.
 """
+
 from pathlib import Path
 
 import yaml

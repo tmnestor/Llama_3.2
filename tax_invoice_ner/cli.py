@@ -17,7 +17,9 @@ from rich.logging import RichHandler
 from rich.table import Table
 
 from tax_invoice_ner.config.config_manager import ConfigManager
-from tax_invoice_ner.extractors.work_expense_ner_extractor import WorkExpenseNERExtractor
+from tax_invoice_ner.extractors.work_expense_ner_extractor import (
+    WorkExpenseNERExtractor,
+)
 
 
 @dataclass
@@ -68,10 +70,18 @@ def extract(
     entity_types: list[str] | None = typer.Option(
         None, "--entity", "-e", help="Specific entity types to extract (default: all)"
     ),
-    output_path: str | None = typer.Option(None, "--output", "-o", help="Output JSON file path"),
-    model_path: str | None = typer.Option(None, "--model", "-m", help="Override model path from config"),
-    device: str | None = typer.Option(None, "--device", "-d", help="Device to use (cpu, cuda, mps)"),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose logging"),
+    output_path: str | None = typer.Option(
+        None, "--output", "-o", help="Output JSON file path"
+    ),
+    model_path: str | None = typer.Option(
+        None, "--model", "-m", help="Override model path from config"
+    ),
+    device: str | None = typer.Option(
+        None, "--device", "-d", help="Device to use (cpu, cuda, mps)"
+    ),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Enable verbose logging"
+    ),
 ) -> None:
     """Extract entities from tax invoice image."""
 
@@ -84,23 +94,31 @@ def extract(
         # Validate input image
         image_file = Path(image_path)
         if not image_file.exists():
-            console.print(f"{rich_config.fail_style} Image file not found: {image_path}")
+            console.print(
+                f"{rich_config.fail_style} Image file not found: {image_path}"
+            )
             raise typer.Exit(1)
 
         # Initialize extractor
         console.print(f"{rich_config.info_style} Loading NER extractor...")
-        extractor = WorkExpenseNERExtractor(config_path=config_path, model_path=model_path, device=device)
+        extractor = WorkExpenseNERExtractor(
+            config_path=config_path, model_path=model_path, device=device
+        )
 
         console.print(
             f"{rich_config.success_style} Model loaded with {len(extractor.get_available_entities())} entity types"
         )
 
         # Extract entities
-        console.print(f"{rich_config.info_style} Extracting entities from {image_path}...")
+        console.print(
+            f"{rich_config.info_style} Extracting entities from {image_path}..."
+        )
         result = extractor.extract_entities(image_path, entity_types=entity_types)
 
         # Display results
-        console.print(f"{rich_config.success_style} Extracted {len(result['entities'])} entities")
+        console.print(
+            f"{rich_config.success_style} Extracted {len(result['entities'])} entities"
+        )
 
         if result["entities"]:
             table = Table(title="Extracted Entities")
@@ -123,7 +141,7 @@ def extract(
             output_file.parent.mkdir(parents=True, exist_ok=True)
 
             # Determine output format from file extension or config
-            if output_path.endswith('.csv'):
+            if output_path.endswith(".csv"):
                 _save_csv_results(result, output_file)
             else:
                 with output_file.open("w") as f:
@@ -166,7 +184,9 @@ def list_entities(
         config_manager = ConfigManager(config_path)
         entities = config_manager.get_entities()
 
-        console.print(f"{rich_config.info_style} Available Entity Types ({len(entities)} total):")
+        console.print(
+            f"{rich_config.info_style} Available Entity Types ({len(entities)} total):"
+        )
 
         # Group entities by category
         categories = {
@@ -184,7 +204,9 @@ def list_entities(
             console.print(f"\n[bold cyan]{category}:[/bold cyan]")
             for entity_type in entity_types:
                 if entity_type in entities:
-                    description = entities[entity_type].get("description", "No description")
+                    description = entities[entity_type].get(
+                        "description", "No description"
+                    )
                     console.print(f"  • [green]{entity_type}[/green]: {description}")
 
         # Show any uncategorized entities
@@ -228,14 +250,18 @@ def validate_config(
         console.print(f"  • Device: {model_config['device']}")
         console.print(f"  • Max tokens: {model_config['max_new_tokens']}")
         console.print(f"  • Entity types: {len(config_manager.get_entity_types())}")
-        console.print(f"  • Confidence threshold: {config_manager.get_confidence_threshold()}")
+        console.print(
+            f"  • Confidence threshold: {config_manager.get_confidence_threshold()}"
+        )
 
         # Check if model path exists
         model_path = Path(model_config["model_path"])
         if model_path.exists():
             console.print(f"{rich_config.success_style} Model path exists")
         else:
-            console.print(f"{rich_config.warning_style} Model path does not exist: {model_path}")
+            console.print(
+                f"{rich_config.warning_style} Model path does not exist: {model_path}"
+            )
 
     except Exception as e:
         console.print(f"{rich_config.fail_style} Configuration validation failed: {e}")
@@ -250,7 +276,9 @@ def demo(
         "-c",
         help="Path to YAML configuration file",
     ),
-    image_path: str = typer.Option("test_receipt.png", "--image", "-i", help="Path to test image"),
+    image_path: str = typer.Option(
+        "test_receipt.png", "--image", "-i", help="Path to test image"
+    ),
 ) -> None:
     """Run a demonstration of the NER system."""
 
@@ -278,7 +306,11 @@ def demo(
             if result["entities"]:
                 for entity in result["entities"]:
                     confidence_emoji = (
-                        "🟢" if entity["confidence"] > 0.8 else "🟡" if entity["confidence"] > 0.6 else "🔴"
+                        "🟢"
+                        if entity["confidence"] > 0.8
+                        else "🟡"
+                        if entity["confidence"] > 0.6
+                        else "🔴"
                     )
                     console.print(
                         f"  {confidence_emoji} {entity['label']}: '{entity['text']}' ({entity['confidence']:.2f})"
@@ -306,25 +338,49 @@ def _save_csv_results(result: dict, output_file: Path) -> None:
         # Create empty CSV with headers
         with output_file.open("w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
-            writer.writerow(["entity_type", "text", "confidence", "start_pos", "end_pos", "source_snippet"])
+            writer.writerow(
+                [
+                    "entity_type",
+                    "text",
+                    "confidence",
+                    "start_pos",
+                    "end_pos",
+                    "source_snippet",
+                ]
+            )
         return
 
     with output_file.open("w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
 
         # Write header
-        writer.writerow(["entity_type", "text", "confidence", "start_pos", "end_pos", "source_snippet"])
+        writer.writerow(
+            [
+                "entity_type",
+                "text",
+                "confidence",
+                "start_pos",
+                "end_pos",
+                "source_snippet",
+            ]
+        )
 
         # Write entity data
         for entity in entities:
-            writer.writerow([
-                entity.get("label", ""),
-                entity.get("text", ""),
-                entity.get("confidence", ""),
-                entity.get("start_pos", ""),
-                entity.get("end_pos", ""),
-                entity.get("source_snippet", "").replace('\n', ' ').replace('\r', ' ') if entity.get("source_snippet") else ""
-            ])
+            writer.writerow(
+                [
+                    entity.get("label", ""),
+                    entity.get("text", ""),
+                    entity.get("confidence", ""),
+                    entity.get("start_pos", ""),
+                    entity.get("end_pos", ""),
+                    entity.get("source_snippet", "")
+                    .replace("\n", " ")
+                    .replace("\r", " ")
+                    if entity.get("source_snippet")
+                    else "",
+                ]
+            )
 
 
 if __name__ == "__main__":

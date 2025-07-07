@@ -59,11 +59,13 @@ logs/
 .DS_Store
 Thumbs.db
 
-
+# Legacy and backup directories
 backups/
+scripts/legacy/archive/
 
+# Other project directories
 latex/
-
 internvl_PoC/
 
+# Include Jupyter notebooks
 !*.ipynb

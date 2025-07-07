@@ -10,7 +10,6 @@ from pathlib import Path
 
 from tax_invoice_ner import WorkExpenseNERExtractor
 
-
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -41,7 +40,11 @@ def main():
 
     for entity in result["entities"]:
         confidence_emoji = (
-            "🟢" if entity["confidence"] > 0.8 else "🟡" if entity["confidence"] > 0.6 else "🔴"
+            "🟢"
+            if entity["confidence"] > 0.8
+            else "🟡"
+            if entity["confidence"] > 0.6
+            else "🔴"
         )
         logger.info(
             f"  {confidence_emoji} {entity['label']}: '{entity['text']}' (confidence: {entity['confidence']:.2f})"

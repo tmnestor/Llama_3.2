@@ -17,9 +17,7 @@ from typing import Any
 import torch
 import yaml
 from PIL import Image
-from transformers import AutoProcessor
-from transformers import AutoTokenizer
-from transformers import MllamaForConditionalGeneration
+from transformers import AutoProcessor, AutoTokenizer, MllamaForConditionalGeneration
 
 
 class WorkExpenseNERExtractor:
@@ -63,7 +61,9 @@ class WorkExpenseNERExtractor:
         # Compile frequently used regex patterns for performance
         self._compile_regex_patterns()
 
-        self.logger.info(f"NER extractor initialized with {len(self.entity_types)} entity types")
+        self.logger.info(
+            f"NER extractor initialized with {len(self.entity_types)} entity types"
+        )
 
     def _load_config(self, config_path: str) -> dict[str, Any]:
         """Load YAML configuration file.
@@ -93,8 +93,12 @@ class WorkExpenseNERExtractor:
         self.logger.info(f"Loading Llama-Vision model from {self.model_path}")
 
         # Load processor and tokenizer
-        self.processor = AutoProcessor.from_pretrained(self.model_path, trust_remote_code=True)
-        self.tokenizer = AutoTokenizer.from_pretrained(self.model_path, trust_remote_code=True)
+        self.processor = AutoProcessor.from_pretrained(
+            self.model_path, trust_remote_code=True
+        )
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            self.model_path, trust_remote_code=True
+        )
 
         # Load model with GPU optimization settings for KFP Discovery
         model_dtype = torch.float16
@@ -126,8 +130,12 @@ class WorkExpenseNERExtractor:
                     torch.cuda.set_per_process_memory_fraction(
                         self.config["model"].get("gpu_memory_fraction", 0.8)
                     )
-                self.logger.info("Using CUDA for optimized NER processing on KFP Discovery")
-                self.logger.info(f"GPU: {torch.cuda.get_device_name()} with {torch.cuda.get_device_properties(0).total_memory // 1024**2}MB")
+                self.logger.info(
+                    "Using CUDA for optimized NER processing on KFP Discovery"
+                )
+                self.logger.info(
+                    f"GPU: {torch.cuda.get_device_name()} with {torch.cuda.get_device_properties(0).total_memory // 1024**2}MB"
+                )
             else:
                 self.device = "cpu"
                 self.logger.info("CUDA not available, using CPU for NER processing")
@@ -156,14 +164,18 @@ class WorkExpenseNERExtractor:
 
         # Business name patterns (used in loops) - CORRECTED
         self.business_patterns_compiled = [
-            re.compile(r"from\s+([A-Z](?:[A-Z\s&.,-]){2,30}?)\s+and\s+the\b", re.IGNORECASE),
+            re.compile(
+                r"from\s+([A-Z](?:[A-Z\s&.,-]){2,30}?)\s+and\s+the\b", re.IGNORECASE
+            ),
             re.compile(r"from\s+([A-Z](?:[A-Z\s&.,-]){2,30}?)\s+and\b", re.IGNORECASE),
             re.compile(
                 r"invoice\s+(?:is\s+)?from\s+([A-Z](?:[A-Z\s&.,-]){2,30}?)(?:\s+and|\s+[a-z])",
                 re.IGNORECASE,
             ),
             re.compile(r'"([A-Z](?:[A-Z\s&.,-]){2,25})"', re.IGNORECASE),
-            re.compile(r"business\s+name:?\s*([A-Z](?:[A-Z\s&.,-]){2,30})", re.IGNORECASE),
+            re.compile(
+                r"business\s+name:?\s*([A-Z](?:[A-Z\s&.,-]){2,30})", re.IGNORECASE
+            ),
         ]
 
         # Currency amount patterns (used frequently) - ENHANCED
@@ -175,15 +187,21 @@ class WorkExpenseNERExtractor:
                 re.IGNORECASE,
             ),
             re.compile(r"(-?[\$€£¥][\d,]+\.?\d*)", re.IGNORECASE),
-            re.compile(r"amount:?\s*(?:AUD|\(AUD\))?\s*(-?[\$€£¥]?[\d,]+\.?\d*)", re.IGNORECASE),
+            re.compile(
+                r"amount:?\s*(?:AUD|\(AUD\))?\s*(-?[\$€£¥]?[\d,]+\.?\d*)", re.IGNORECASE
+            ),
             re.compile(r"(-?\d+\.\d{2})", re.IGNORECASE),
             # Bank statement specific patterns for negative amounts
             re.compile(r"withdrawal:?\s*(-?\$\s*[\d,]+\.?\d*)", re.IGNORECASE),
             re.compile(r"debit:?\s*(-?\$\s*[\d,]+\.?\d*)", re.IGNORECASE),
             re.compile(r"balance:?\s*(-?\$\s*[\d,]+\.?\d*)", re.IGNORECASE),
             # Australian bank statement patterns with CR notation
-            re.compile(r"(\$?\s*[\d,]+\.\d{2})\s*\(?CR\)?", re.IGNORECASE),  # Amount followed by CR
-            re.compile(r"balance:?\s*(\$?\s*[\d,]+\.\d{2})\s*\(?CR\)?", re.IGNORECASE),  # Balance with CR
+            re.compile(
+                r"(\$?\s*[\d,]+\.\d{2})\s*\(?CR\)?", re.IGNORECASE
+            ),  # Amount followed by CR
+            re.compile(
+                r"balance:?\s*(\$?\s*[\d,]+\.\d{2})\s*\(?CR\)?", re.IGNORECASE
+            ),  # Balance with CR
         ]
 
         # AUD notation detection (used frequently)
@@ -246,13 +264,17 @@ class WorkExpenseNERExtractor:
         self.abn_patterns_compiled = [
             re.compile(r"(?:ABN:?\s*)?(\d{2}\s\d{3}\s\d{3}\s\d{3})", re.IGNORECASE),
             re.compile(r"(?:ABN:?\s*)?(\d{11})", re.IGNORECASE),
-            re.compile(r"(?:ABN:?\s*)?(\d{2}[\s\-\.]\d{3}[\s\-\.]\d{3}[\s\-\.]\d{3})", re.IGNORECASE),
+            re.compile(
+                r"(?:ABN:?\s*)?(\d{2}[\s\-\.]\d{3}[\s\-\.]\d{3}[\s\-\.]\d{3})",
+                re.IGNORECASE,
+            ),
             re.compile(
                 r"australian\s+business\s+number:?\s*(\d{2}[\s\-\.]?\d{3}[\s\-\.]?\d{3}[\s\-\.]?\d{3})",
                 re.IGNORECASE,
             ),
             re.compile(
-                r"business\s+number:?\s*(\d{2}[\s\-\.]?\d{3}[\s\-\.]?\d{3}[\s\-\.]?\d{3})", re.IGNORECASE
+                r"business\s+number:?\s*(\d{2}[\s\-\.]?\d{3}[\s\-\.]?\d{3}[\s\-\.]?\d{3})",
+                re.IGNORECASE,
             ),
         ]
 
@@ -265,8 +287,14 @@ class WorkExpenseNERExtractor:
                 r"(?:website|web|url):?\s*((?:https?://)?(?:www\.)?[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?:/[^\s]*)?)",
                 re.IGNORECASE,
             ),
-            re.compile(r"(https?://[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?:/[^\s]*)?)", re.IGNORECASE),
-            re.compile(r"(www\.[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?:/[^\s]*)?)", re.IGNORECASE),
+            re.compile(
+                r"(https?://[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?:/[^\s]*)?)",
+                re.IGNORECASE,
+            ),
+            re.compile(
+                r"(www\.[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?:/[^\s]*)?)",
+                re.IGNORECASE,
+            ),
             re.compile(
                 r"([a-zA-Z0-9][a-zA-Z0-9.-]+\.(?:com|org|net|edu|gov|com\.au|org\.au|net\.au)(?:/[^\s]*)?)",
                 re.IGNORECASE,
@@ -275,13 +303,22 @@ class WorkExpenseNERExtractor:
 
         # Banking patterns (compiled for performance)
         self.bsb_patterns_compiled = [
-            re.compile(r"(?:bsb|bank state branch):?\s*(\d{3}[\s\-]?\d{3})", re.IGNORECASE),
-            re.compile(r"(\d{3}[\s\-]\d{3})(?:\s|$)", re.IGNORECASE),  # Standalone BSB format
+            re.compile(
+                r"(?:bsb|bank state branch):?\s*(\d{3}[\s\-]?\d{3})", re.IGNORECASE
+            ),
+            re.compile(
+                r"(\d{3}[\s\-]\d{3})(?:\s|$)", re.IGNORECASE
+            ),  # Standalone BSB format
         ]
 
         self.account_patterns_compiled = [
-            re.compile(r"(?:account|acc|account no|account number):?\s*([\d\s\-]{6,})", re.IGNORECASE),
-            re.compile(r"(\d{6,12})(?:\s|$)", re.IGNORECASE),  # Standalone account numbers
+            re.compile(
+                r"(?:account|acc|account no|account number):?\s*([\d\s\-]{6,})",
+                re.IGNORECASE,
+            ),
+            re.compile(
+                r"(\d{6,12})(?:\s|$)", re.IGNORECASE
+            ),  # Standalone account numbers
         ]
 
         self.bank_name_patterns_compiled = [
@@ -293,7 +330,9 @@ class WorkExpenseNERExtractor:
             re.compile(r"(suncorp|suncorp bank)", re.IGNORECASE),
             re.compile(r"(macquarie bank|macquarie)", re.IGNORECASE),
             re.compile(r"(ing bank|ing)", re.IGNORECASE),
-            re.compile(r"([a-z\s]+(?:bank|credit union|building society))", re.IGNORECASE),
+            re.compile(
+                r"([a-z\s]+(?:bank|credit union|building society))", re.IGNORECASE
+            ),
         ]
 
         # Date splitting pattern
@@ -313,7 +352,9 @@ class WorkExpenseNERExtractor:
         self.date_validation_pattern = re.compile(
             r"^\d{1,2}[-/]\d{1,2}[-/]\d{2,4}$|^\d{4}-\d{1,2}-\d{1,2}$"
         )
-        self.email_validation_pattern = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
+        self.email_validation_pattern = re.compile(
+            r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+        )
         self.phone_validation_pattern = re.compile(
             r"^(?:\+61\s?)?(?:\(0\d\)|0\d)\s?\d{4}\s?\d{4}$|^(?:\+61\s?)?4\d{2}\s?\d{3}\s?\d{3}$"
         )  # Australian format
@@ -324,7 +365,9 @@ class WorkExpenseNERExtractor:
         self.bsb_validation_pattern = re.compile(
             r"^\d{3}[\s\-]?\d{3}$"
         )  # BSB format: 123-456 or 123456 or 123 456
-        self.numeric_validation_pattern = re.compile(r"^\d+[\s\-]*\d*$")  # Numeric with optional separators
+        self.numeric_validation_pattern = re.compile(
+            r"^\d+[\s\-]*\d*$"
+        )  # Numeric with optional separators
 
         self.logger.info("Compiled regex patterns for optimized performance")
 
@@ -363,9 +406,13 @@ class WorkExpenseNERExtractor:
 
         try:
             if self.config["processing"]["extraction_method"] == "sequential":
-                result["entities"] = self._extract_entities_sequential(image, entity_types)
+                result["entities"] = self._extract_entities_sequential(
+                    image, entity_types
+                )
             else:
-                result["entities"] = self._extract_entities_parallel(image, entity_types)
+                result["entities"] = self._extract_entities_parallel(
+                    image, entity_types
+                )
 
             # Calculate positions for extracted entities
             result["entities"] = self._calculate_entity_positions(result["entities"])
@@ -373,7 +420,9 @@ class WorkExpenseNERExtractor:
             # Apply post-processing validation
             result["entities"] = self._validate_entities(result["entities"])
 
-            self.logger.info(f"Extracted {len(result['entities'])} entities from {image_path}")
+            self.logger.info(
+                f"Extracted {len(result['entities'])} entities from {image_path}"
+            )
 
         except Exception as e:
             self.logger.error(f"Failed to extract entities from {image_path}: {e}")
@@ -507,7 +556,9 @@ class WorkExpenseNERExtractor:
 
             # Apply chat template
             self.logger.debug("🔄 Applying chat template...")
-            input_text = self.processor.apply_chat_template(messages, add_generation_prompt=True)
+            input_text = self.processor.apply_chat_template(
+                messages, add_generation_prompt=True
+            )
 
             # Process inputs
             self.logger.debug("🔄 Processing inputs...")
@@ -518,7 +569,9 @@ class WorkExpenseNERExtractor:
             ).to(self.device)
 
             # Generate response with simple progress logging
-            self.logger.info(f"🔄 Starting NER generation ({self.max_new_tokens} tokens)...")
+            self.logger.info(
+                f"🔄 Starting NER generation ({self.max_new_tokens} tokens)..."
+            )
             generation_step_start = time.time()
 
             with torch.no_grad():
@@ -550,7 +603,9 @@ class WorkExpenseNERExtractor:
             )
 
             # Debug: Log the raw response
-            self.logger.info(f"🔍 Raw model response: {response}")  # Full response for debugging
+            self.logger.info(
+                f"🔍 Raw model response: {response}"
+            )  # Full response for debugging
 
         except TimeoutError:
             self.logger.error("Generation timed out")
@@ -563,7 +618,9 @@ class WorkExpenseNERExtractor:
 
         return response
 
-    def _parse_entity_response(self, response: str, entity_type: str) -> list[dict[str, Any]]:
+    def _parse_entity_response(
+        self, response: str, entity_type: str
+    ) -> list[dict[str, Any]]:
         """Parse entity-specific response.
 
         Args:
@@ -687,7 +744,9 @@ class WorkExpenseNERExtractor:
             if match:
                 business_name = match.group(1).strip()
                 # Debug logging
-                self.logger.debug(f"🔍 Business pattern {i + 1} matched: '{business_name}'")
+                self.logger.debug(
+                    f"🔍 Business pattern {i + 1} matched: '{business_name}'"
+                )
                 if len(business_name) > 2:  # Filter out very short matches
                     entities.append(
                         {
@@ -717,8 +776,12 @@ class WorkExpenseNERExtractor:
                 pattern_match = pattern.search(response)
                 if pattern_match:
                     # Look for CR notation near the amount
-                    match_context = response[max(0, pattern_match.start() - 20) : pattern_match.end() + 20]
-                    is_credit = bool(re.search(r"\(?CR\)?", match_context, re.IGNORECASE))
+                    match_context = response[
+                        max(0, pattern_match.start() - 20) : pattern_match.end() + 20
+                    ]
+                    is_credit = bool(
+                        re.search(r"\(?CR\)?", match_context, re.IGNORECASE)
+                    )
 
                 # Determine if this is a negative amount
                 is_negative = clean_amount.startswith("-")
@@ -750,7 +813,9 @@ class WorkExpenseNERExtractor:
                                     if is_credit:
                                         formatted_amount += " CR"
 
-                            if formatted_amount not in amounts_found:  # Avoid duplicates
+                            if (
+                                formatted_amount not in amounts_found
+                            ):  # Avoid duplicates
                                 amounts_found.add(formatted_amount)
 
                                 # Determine entity type based on context, sign, and CR notation
@@ -759,7 +824,12 @@ class WorkExpenseNERExtractor:
                                     # Check context for withdrawal/debit patterns
                                     if any(
                                         keyword in response.lower()
-                                        for keyword in ["withdrawal", "debit", "wd", "withdraw"]
+                                        for keyword in [
+                                            "withdrawal",
+                                            "debit",
+                                            "wd",
+                                            "withdraw",
+                                        ]
                                     ):
                                         entity_label = "WITHDRAWAL_AMOUNT"
                                     elif "balance" in response.lower():
@@ -907,7 +977,9 @@ class WorkExpenseNERExtractor:
                 for pattern, format_hint in date_patterns:
                     date_match = pattern.search(date_context)
                     if date_match:
-                        parsed_date = parse_date_string(date_match.group(0), format_hint)
+                        parsed_date = parse_date_string(
+                            date_match.group(0), format_hint
+                        )
                         if parsed_date:
                             entities.append(
                                 {
@@ -929,7 +1001,9 @@ class WorkExpenseNERExtractor:
                 for pattern, format_hint in date_patterns:
                     date_match = pattern.search(date_context)
                     if date_match:
-                        parsed_date = parse_date_string(date_match.group(0), format_hint)
+                        parsed_date = parse_date_string(
+                            date_match.group(0), format_hint
+                        )
                         if parsed_date:
                             entities.append(
                                 {
@@ -964,7 +1038,10 @@ class WorkExpenseNERExtractor:
                 digits = [int(abn_digits[0]) - 1] + [int(d) for d in abn_digits[1:]]
 
                 # Calculate weighted sum
-                total = sum(digit * weight for digit, weight in zip(digits, weights, strict=False))
+                total = sum(
+                    digit * weight
+                    for digit, weight in zip(digits, weights, strict=False)
+                )
 
                 # Check if divisible by 89
                 return total % 89 == 0
@@ -1060,7 +1137,9 @@ class WorkExpenseNERExtractor:
                             }
                         )
 
-    def _extract_banking_info(self, response: str, entities: list[dict[str, Any]]) -> None:
+    def _extract_banking_info(
+        self, response: str, entities: list[dict[str, Any]]
+    ) -> None:
         """Extract banking information from bank statements.
 
         Args:
@@ -1151,7 +1230,9 @@ class WorkExpenseNERExtractor:
 
         return name_mappings.get(bank_name, bank_name)
 
-    def _validate_entities(self, entities: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def _validate_entities(
+        self, entities: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """Validate and filter entities based on configuration.
 
         Args:
@@ -1206,7 +1287,9 @@ class WorkExpenseNERExtractor:
         # Remove duplicate entities
         validated_entities = self._remove_duplicate_entities(validated_entities)
 
-        self.logger.info(f"Validation complete: {len(entities)} -> {len(validated_entities)} entities")
+        self.logger.info(
+            f"Validation complete: {len(entities)} -> {len(validated_entities)} entities"
+        )
         return validated_entities
 
     def _validate_entity_content(self, entity: dict[str, Any]) -> bool:
@@ -1228,7 +1311,9 @@ class WorkExpenseNERExtractor:
         # Check minimum length (avoid single character extractions unless they make sense)
         entity_type = entity.get("label", "")
         if entity_type not in {"TAX_RATE"} and len(text) < 2:
-            self.logger.debug(f"Filtering out too-short entity: '{text}' (type: {entity_type})")
+            self.logger.debug(
+                f"Filtering out too-short entity: '{text}' (type: {entity_type})"
+            )
             return False
 
         # Check maximum reasonable length
@@ -1243,7 +1328,9 @@ class WorkExpenseNERExtractor:
 
         return True
 
-    def _validate_business_rules(self, entity: dict[str, Any], entity_config: dict[str, Any]) -> bool:
+    def _validate_business_rules(
+        self, entity: dict[str, Any], entity_config: dict[str, Any]
+    ) -> bool:
         """Apply business-specific validation rules.
 
         Args:
@@ -1277,16 +1364,26 @@ class WorkExpenseNERExtractor:
                 # Allow negative amounts for bank statement entities (withdrawals, balances)
                 if entity_type in {"WITHDRAWAL_AMOUNT", "ACCOUNT_BALANCE"}:
                     # For bank statements, negative amounts are valid (withdrawals, overdrafts)
-                    if abs(numeric_value) > 1000000:  # Check absolute value for reasonableness
-                        self.logger.debug(f"Filtering out unreasonably large amount: {text}")
+                    if (
+                        abs(numeric_value) > 1000000
+                    ):  # Check absolute value for reasonableness
+                        self.logger.debug(
+                            f"Filtering out unreasonably large amount: {text}"
+                        )
                         return False
                 else:
                     # For invoices/receipts, negative amounts are unusual
                     if numeric_value < 0:
-                        self.logger.debug(f"Filtering out negative amount for {entity_type}: {text}")
+                        self.logger.debug(
+                            f"Filtering out negative amount for {entity_type}: {text}"
+                        )
                         return False
-                    if numeric_value > 1000000:  # Over $1M seems unreasonable for most expenses
-                        self.logger.debug(f"Filtering out unreasonably large amount: {text}")
+                    if (
+                        numeric_value > 1000000
+                    ):  # Over $1M seems unreasonable for most expenses
+                        self.logger.debug(
+                            f"Filtering out unreasonably large amount: {text}"
+                        )
                         return False
             except ValueError:
                 pass  # Let format validation handle invalid currency formats
@@ -1317,8 +1414,12 @@ class WorkExpenseNERExtractor:
         if entity_type == "PHONE_NUMBER":
             # Remove all non-digits
             digits_only = re.sub(r"\D", "", text)
-            if len(digits_only) < 8 or len(digits_only) > 15:  # Reasonable phone number length
-                self.logger.debug(f"Filtering out invalid phone number length: '{text}'")
+            if (
+                len(digits_only) < 8 or len(digits_only) > 15
+            ):  # Reasonable phone number length
+                self.logger.debug(
+                    f"Filtering out invalid phone number length: '{text}'"
+                )
                 return False
 
         # Email validation
@@ -1329,7 +1430,9 @@ class WorkExpenseNERExtractor:
 
         return True
 
-    def _remove_duplicate_entities(self, entities: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def _remove_duplicate_entities(
+        self, entities: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """Remove duplicate entities, keeping the one with highest confidence.
 
         Args:
@@ -1364,7 +1467,9 @@ class WorkExpenseNERExtractor:
 
         return deduplicated
 
-    def _validate_format(self, text: str, format_type: str, validation_config: dict[str, Any]) -> bool:
+    def _validate_format(
+        self, text: str, format_type: str, validation_config: dict[str, Any]
+    ) -> bool:
         """Validate entity text against format requirements.
 
         Args:
@@ -1450,7 +1555,9 @@ class WorkExpenseNERExtractor:
 
         return self.entities[entity_type]
 
-    def _calculate_entity_positions(self, entities: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def _calculate_entity_positions(
+        self, entities: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """Calculate start_pos and end_pos for extracted entities based on model response.
 
         Args:
@@ -1459,7 +1566,7 @@ class WorkExpenseNERExtractor:
         Returns:
             List of entities with calculated positions
         """
-        if not hasattr(self, '_last_raw_response') or not self._last_raw_response:
+        if not hasattr(self, "_last_raw_response") or not self._last_raw_response:
             self.logger.warning("No raw response available for position calculation")
             return entities
 
@@ -1487,11 +1594,17 @@ class WorkExpenseNERExtractor:
                 # Add source snippet for validation (10 chars before/after)
                 snippet_start = max(0, start_pos - 10)
                 snippet_end = min(len(self._last_raw_response), end_pos + 10)
-                entity["source_snippet"] = self._last_raw_response[snippet_start:snippet_end]
+                entity["source_snippet"] = self._last_raw_response[
+                    snippet_start:snippet_end
+                ]
 
-                self.logger.debug(f"Found position for '{entity_text}': {start_pos}-{end_pos}")
+                self.logger.debug(
+                    f"Found position for '{entity_text}': {start_pos}-{end_pos}"
+                )
             else:
-                self.logger.debug(f"Could not find position for entity: '{entity_text}'")
+                self.logger.debug(
+                    f"Could not find position for entity: '{entity_text}'"
+                )
                 entity["start_pos"] = None
                 entity["end_pos"] = None
                 entity["source_snippet"] = None

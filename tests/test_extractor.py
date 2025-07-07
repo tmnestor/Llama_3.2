@@ -5,12 +5,13 @@ Note: These tests focus on the public interface and configuration handling.
 Model loading and inference tests require the actual model files.
 """
 
-from unittest.mock import Mock
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 
-from tax_invoice_ner.extractors.work_expense_ner_extractor import WorkExpenseNERExtractor
+from tax_invoice_ner.extractors.work_expense_ner_extractor import (
+    WorkExpenseNERExtractor,
+)
 
 
 class TestWorkExpenseNERExtractor:
@@ -42,7 +43,9 @@ class TestWorkExpenseNERExtractor:
 
         with patch.object(WorkExpenseNERExtractor, "_load_model"):
             extractor = WorkExpenseNERExtractor(
-                config_path=test_config_file, model_path="/custom/model/path", device="cuda"
+                config_path=test_config_file,
+                model_path="/custom/model/path",
+                device="cuda",
             )
 
             assert extractor.model_path == "/custom/model/path"
@@ -73,7 +76,10 @@ class TestWorkExpenseNERExtractor:
             config = extractor.get_entity_config("BUSINESS_NAME")
 
             assert "description" in config
-            assert config["description"] == "Name of the business/company issuing the invoice"
+            assert (
+                config["description"]
+                == "Name of the business/company issuing the invoice"
+            )
 
     @patch("tax_invoice_ner.extractors.work_expense_ner_extractor.Path")
     def test_get_entity_config_invalid(self, mock_path, test_config_file: str):
@@ -87,7 +93,9 @@ class TestWorkExpenseNERExtractor:
                 extractor.get_entity_config("INVALID_ENTITY")
 
     @patch("tax_invoice_ner.extractors.work_expense_ner_extractor.Path")
-    def test_preprocess_image_valid(self, mock_path, test_config_file: str, test_image: str):
+    def test_preprocess_image_valid(
+        self, mock_path, test_config_file: str, test_image: str
+    ):
         """Test image preprocessing with valid image."""
         mock_path.return_value.exists.return_value = True
 
@@ -123,7 +131,11 @@ class TestWorkExpenseNERExtractor:
             # Test entities with different confidence levels
             test_entities = [
                 {"text": "ABC Corp", "label": "BUSINESS_NAME", "confidence": 0.9},
-                {"text": "XYZ Inc", "label": "BUSINESS_NAME", "confidence": 0.5},  # Below threshold
+                {
+                    "text": "XYZ Inc",
+                    "label": "BUSINESS_NAME",
+                    "confidence": 0.5,
+                },  # Below threshold
                 {"text": "$100.00", "label": "TOTAL_AMOUNT", "confidence": 0.8},
             ]
 
@@ -166,7 +178,9 @@ class TestWorkExpenseNERExtractor:
             assert result[0]["confidence"] == 0.7  # Default confidence
 
     @patch("tax_invoice_ner.extractors.work_expense_ner_extractor.Path")
-    def test_extract_entities_invalid_types(self, mock_path, test_config_file: str, test_image: str):
+    def test_extract_entities_invalid_types(
+        self, mock_path, test_config_file: str, test_image: str
+    ):
         """Test extraction with invalid entity types."""
         mock_path.return_value.exists.return_value = True
 
