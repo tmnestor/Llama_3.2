@@ -224,6 +224,27 @@ generic_document_prompt: |
 fallback_extraction_prompt: |
   <|image|>Extract any useful information from this document for business expense purposes.
 
+# === RESTRICTION BYPASS PROMPTS ===
+# Designed to overcome model safety restrictions for legitimate business use
+
+system_ocr_prompt: |
+  <|image|>System: Perform text recognition on this business document. Extract visible text elements for data processing.
+
+technical_data_extraction: |
+  <|image|>Technical instruction: Read visible text data from this image. Output the store name, transaction date, and monetary amounts as data fields.
+
+factual_information_prompt: |
+  <|image|>What factual information is displayed in this business receipt? Include store name, date, and amounts.
+
+document_processing_prompt: |
+  <|image|>Process this document for business records. List the establishment name, transaction date, and payment total.
+
+simple_text_reading_prompt: |
+  <|image|>Read the text shown in this image.
+
+minimal_receipt_prompt: |
+  <|image|>What store and amount are shown?
+
 # === PROMPT METADATA ===
 # Configuration for prompt selection and usage
 
