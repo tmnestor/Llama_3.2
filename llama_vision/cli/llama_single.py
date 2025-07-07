@@ -62,11 +62,7 @@ def extract(
             image_loader = ImageLoader(log_level)
             if not Path(image_path).exists():
                 console.print(f"[red]Error: Image file not found: {image_path}[/red]")
-<<<<<<< HEAD
                 raise typer.Exit(1)
-=======
-                raise typer.Exit(1) from None
->>>>>>> 53cbe49 (✨ feat: Add comprehensive llama_vision package with CLI tools and document extraction capabilities)
             progress.update(validate_task, description="✅ Image validated")
 
             # Get prompt
@@ -79,11 +75,7 @@ def extract(
                 console.print(
                     f"Available prompts: {', '.join(available_prompts[:5])}..."
                 )
-<<<<<<< HEAD
-                raise typer.Exit(1)
-=======
                 raise typer.Exit(1) from None
->>>>>>> 53cbe49 (✨ feat: Add comprehensive llama_vision package with CLI tools and document extraction capabilities)
             progress.update(prompt_task, description="✅ Prompt loaded")
 
             # Run inference
@@ -111,11 +103,7 @@ def extract(
                 console.print(
                     f"[red]Error: Unknown extraction method: {extraction_method}[/red]"
                 )
-<<<<<<< HEAD
-                raise typer.Exit(1)
-=======
                 raise typer.Exit(1) from None
->>>>>>> 53cbe49 (✨ feat: Add comprehensive llama_vision package with CLI tools and document extraction capabilities)
 
             progress.update(extract_task, description="✅ Data extracted")
 
@@ -183,11 +171,7 @@ def extract(
             import traceback
 
             console.print(f"[red]{traceback.format_exc()}[/red]")
-<<<<<<< HEAD
-        raise typer.Exit(1)
-=======
         raise typer.Exit(1) from None
->>>>>>> 53cbe49 (✨ feat: Add comprehensive llama_vision package with CLI tools and document extraction capabilities)
 
 
 @app.command()
@@ -199,13 +183,11 @@ def classify(
 
     log_level = "DEBUG" if verbose else "INFO"
     config = load_config()
-<<<<<<< HEAD
-=======
-    
+
     # Configure logging level
     import logging
+
     logging.basicConfig(level=getattr(logging, log_level))
->>>>>>> 53cbe49 (✨ feat: Add comprehensive llama_vision package with CLI tools and document extraction capabilities)
 
     try:
         with Progress(
@@ -244,11 +226,7 @@ def classify(
             import traceback
 
             console.print(f"[red]{traceback.format_exc()}[/red]")
-<<<<<<< HEAD
-        raise typer.Exit(1)
-=======
         raise typer.Exit(1) from None
->>>>>>> 53cbe49 (✨ feat: Add comprehensive llama_vision package with CLI tools and document extraction capabilities)
 
 
 @app.command()
@@ -277,11 +255,7 @@ def list_prompts():
 
     except Exception as e:
         console.print(f"[red]❌ Error loading prompts: {e}[/red]")
-<<<<<<< HEAD
-        raise typer.Exit(1)
-=======
         raise typer.Exit(1) from None
->>>>>>> 53cbe49 (✨ feat: Add comprehensive llama_vision package with CLI tools and document extraction capabilities)
 
 
 @app.command()
@@ -331,11 +305,7 @@ def validate_config():
 
     except Exception as e:
         console.print(f"[red]❌ Validation failed: {e}[/red]")
-<<<<<<< HEAD
-        raise typer.Exit(1)
-=======
         raise typer.Exit(1) from None
->>>>>>> 53cbe49 (✨ feat: Add comprehensive llama_vision package with CLI tools and document extraction capabilities)
 
 
 if __name__ == "__main__":

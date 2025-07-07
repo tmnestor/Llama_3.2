@@ -140,22 +140,16 @@ def get_image_info(image_path: str) -> dict:
 
 
 def optimize_image_for_inference(
-<<<<<<< HEAD
-    image: Image.Image, target_size: Optional[Tuple[int, int]] = None, quality: int = 95
-=======
-    image: Image.Image, target_size: Optional[Tuple[int, int]] = None, _quality: int = 95
->>>>>>> 53cbe49 (✨ feat: Add comprehensive llama_vision package with CLI tools and document extraction capabilities)
+    image: Image.Image,
+    target_size: Optional[Tuple[int, int]] = None,
+    _quality: int = 95,
 ) -> Image.Image:
     """Optimize image for faster inference while maintaining quality.
 
     Args:
         image: PIL Image to optimize
         target_size: Target size tuple (width, height)
-<<<<<<< HEAD
         quality: JPEG quality for compression (if applicable)
-=======
-        _quality: JPEG quality for compression (if applicable)
->>>>>>> 53cbe49 (✨ feat: Add comprehensive llama_vision package with CLI tools and document extraction capabilities)
 
     Returns:
         Optimized PIL Image

@@ -273,11 +273,7 @@ class LlamaModelLoader:
         except Exception as e:
             self.logger.warning(f"Model functionality test failed: {e}")
 
-<<<<<<< HEAD
-    def _log_memory_usage(self, pre_memory: dict, post_memory: dict) -> None:
-=======
     def _log_memory_usage(self, _pre_memory: dict, post_memory: dict) -> None:
->>>>>>> 53cbe49 (✨ feat: Add comprehensive llama_vision package with CLI tools and document extraction capabilities)
         """Log memory usage before and after loading."""
         if "gpu_memory_allocated_gb" in post_memory:
             gpu_used = post_memory["gpu_memory_allocated_gb"]
