@@ -1,0 +1,83 @@
+name: vision_env
+channels:
+  - conda-forge
+  - defaults
+variables:
+  KMP_DUPLICATE_LIB_OK: "TRUE"
+dependencies:
+  - python=3.11
+  - numpy
+  - pandas
+  - pillow
+  - matplotlib
+  - tqdm
+  - pyyaml
+  - scikit-learn
+  - pip
+  - ipykernel  # Required for Jupyter notebook support
+  - pip:
+    # Core dependencies for data generation and evaluation
+    - transformers==4.45.2  # Fixed version for Llama-3.2-Vision compatibility
+    - typer>=0.9.0
+    - rich>=13.0.0
+    - torch>=2.0.0
+    - torchvision
+    - accelerate  # Required for MPS/device mapping support
+    - bitsandbytes  # Required for 8-bit quantization on V100 16GB
+    - sentencepiece  # Required for tokenizer
+    - protobuf  # Required for model loading
+
+# =====================================================
+# ENVIRONMENT SETUP INSTRUCTIONS
+# =====================================================
+#
+# Step 1: Create the conda environment
+# ------------------------------------
+# conda env create -f vision_env.yml
+#
+# Step 2: Activate the environment
+# --------------------------------
+# conda activate vision_env
+#
+# Step 3: Install PyTorch with CUDA support
+# -----------------------------------------
+# For CUDA 11.x (V100):
+# conda install pytorch==2.0.1 torchvision==0.15.2 pytorch-cuda=11.8 -c pytorch -c nvidia
+#
+# For CUDA 12.x (L40S):
+# conda install pytorch torchvision pytorch-cuda=12.1 -c pytorch -c nvidia
+#
+# Step 4: Register the environment as a Jupyter kernel
+# ---------------------------------------------------
+# python -m ipykernel install --user --name vision_env --display-name "Python (vision_env)"
+#
+# Step 5: Verify the installation
+# -------------------------------
+# python -c "import torch; print(f'PyTorch: {torch.__version__}')"
+# python -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}')"
+# python -c "import transformers; print(f'Transformers: {transformers.__version__}')"
+# python -c "import bitsandbytes; print('BitsAndBytes: OK')"
+#
+# =====================================================
+# TROUBLESHOOTING
+# =====================================================
+#
+# If conda activate fails in JupyterHub:
+# --------------------------------------
+# source /opt/conda/etc/profile.d/conda.sh && conda activate vision_env
+#
+# To list available kernels:
+# -------------------------
+# jupyter kernelspec list
+#
+# To remove old kernel:
+# --------------------
+# jupyter kernelspec uninstall internvl_env
+#
+# =====================================================
+# NOTES
+# =====================================================
+# - transformers is pinned to 4.45.2 for Llama-3.2-Vision compatibility
+# - bitsandbytes is required for 8-bit quantization on V100 16GB
+# - ipykernel is included for Jupyter notebook support
+# - KMP_DUPLICATE_LIB_OK=TRUE fixes OpenMP library conflicts
