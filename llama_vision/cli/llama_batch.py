@@ -49,7 +49,11 @@ def extract(
 
         # Collect all images
         all_images = []
+<<<<<<< HEAD
         for category, images in discovered_images.items():
+=======
+        for _category, images in discovered_images.items():
+>>>>>>> 53cbe49 (✨ feat: Add comprehensive llama_vision package with CLI tools and document extraction capabilities)
             all_images.extend(images)
 
         # Filter by pattern if specified
@@ -81,7 +85,11 @@ def extract(
             available_prompts = prompt_manager.list_prompts()
             console.print(f"[red]Error: Prompt '{prompt_name}' not found.[/red]")
             console.print(f"Available prompts: {', '.join(available_prompts[:5])}...")
+<<<<<<< HEAD
             raise typer.Exit(1)
+=======
+            raise typer.Exit(1) from None
+>>>>>>> 53cbe49 (✨ feat: Add comprehensive llama_vision package with CLI tools and document extraction capabilities)
 
         # Setup extractor
         if extraction_method == "key_value":
@@ -96,7 +104,11 @@ def extract(
             console.print(
                 f"[red]Error: Unknown extraction method: {extraction_method}[/red]"
             )
+<<<<<<< HEAD
             raise typer.Exit(1)
+=======
+            raise typer.Exit(1) from None
+>>>>>>> 53cbe49 (✨ feat: Add comprehensive llama_vision package with CLI tools and document extraction capabilities)
 
         # Process images
         console.print(
@@ -198,7 +210,11 @@ def extract(
             import traceback
 
             console.print(f"[red]{traceback.format_exc()}[/red]")
+<<<<<<< HEAD
         raise typer.Exit(1)
+=======
+        raise typer.Exit(1) from None
+>>>>>>> 53cbe49 (✨ feat: Add comprehensive llama_vision package with CLI tools and document extraction capabilities)
 
 
 def process_single_image(
@@ -232,6 +248,11 @@ def process_single_image(
             "image_name": Path(image_path).name,
             "inference_time_seconds": inference_time,
             "response_length": len(response),
+<<<<<<< HEAD
+=======
+            "processed_order": current,
+            "total_images": total,
+>>>>>>> 53cbe49 (✨ feat: Add comprehensive llama_vision package with CLI tools and document extraction capabilities)
             "field_count": len(extracted_data),
             "success": True,
             "extraction_method": extraction_method,
@@ -410,7 +431,11 @@ def analyze(
 
     except Exception as e:
         console.print(f"[red]❌ Analysis failed: {e}[/red]")
+<<<<<<< HEAD
         raise typer.Exit(1)
+=======
+        raise typer.Exit(1) from None
+>>>>>>> 53cbe49 (✨ feat: Add comprehensive llama_vision package with CLI tools and document extraction capabilities)
 
 
 def load_results_csv(input_path: Path) -> List[dict]:

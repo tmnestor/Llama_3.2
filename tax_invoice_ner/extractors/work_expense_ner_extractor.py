@@ -537,7 +537,7 @@ class WorkExpenseNERExtractor:
             Generated response text
         """
 
-        def timeout_handler(signum, frame):
+        def timeout_handler(_signum, _frame):
             raise TimeoutError("Generation timed out after 12 hours")
 
         # Set timeout
@@ -1329,7 +1329,11 @@ class WorkExpenseNERExtractor:
         return True
 
     def _validate_business_rules(
+<<<<<<< HEAD
         self, entity: dict[str, Any], entity_config: dict[str, Any]
+=======
+        self, entity: dict[str, Any], _entity_config: dict[str, Any]
+>>>>>>> 53cbe49 (✨ feat: Add comprehensive llama_vision package with CLI tools and document extraction capabilities)
     ) -> bool:
         """Apply business-specific validation rules.
 

@@ -20,6 +20,14 @@ from tax_invoice_ner.config.config_manager import ConfigManager
 from tax_invoice_ner.extractors.work_expense_ner_extractor import (
     WorkExpenseNERExtractor,
 )
+<<<<<<< HEAD
+=======
+
+# Module-level typer options to avoid B008 errors
+ENTITY_TYPES_OPTION = typer.Option(
+    None, "--entity", "-e", help="Specific entity types to extract (default: all)"
+)
+>>>>>>> 53cbe49 (✨ feat: Add comprehensive llama_vision package with CLI tools and document extraction capabilities)
 
 
 @dataclass
@@ -67,9 +75,7 @@ def extract(
         "-c",
         help="Path to YAML configuration file",
     ),
-    entity_types: list[str] | None = typer.Option(
-        None, "--entity", "-e", help="Specific entity types to extract (default: all)"
-    ),
+    entity_types: list[str] | None = ENTITY_TYPES_OPTION,
     output_path: str | None = typer.Option(
         None, "--output", "-o", help="Output JSON file path"
     ),
@@ -82,6 +88,21 @@ def extract(
     verbose: bool = typer.Option(
         False, "--verbose", "-v", help="Enable verbose logging"
     ),
+<<<<<<< HEAD
+    output_path: str | None = typer.Option(
+        None, "--output", "-o", help="Output JSON file path"
+    ),
+    model_path: str | None = typer.Option(
+        None, "--model", "-m", help="Override model path from config"
+    ),
+    device: str | None = typer.Option(
+        None, "--device", "-d", help="Device to use (cpu, cuda, mps)"
+    ),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Enable verbose logging"
+    ),
+=======
+>>>>>>> 53cbe49 (✨ feat: Add comprehensive llama_vision package with CLI tools and document extraction capabilities)
 ) -> None:
     """Extract entities from tax invoice image."""
 
@@ -97,7 +118,11 @@ def extract(
             console.print(
                 f"{rich_config.fail_style} Image file not found: {image_path}"
             )
+<<<<<<< HEAD
             raise typer.Exit(1)
+=======
+            raise typer.Exit(1) from None
+>>>>>>> 53cbe49 (✨ feat: Add comprehensive llama_vision package with CLI tools and document extraction capabilities)
 
         # Initialize extractor
         console.print(f"{rich_config.info_style} Loading NER extractor...")
@@ -158,13 +183,13 @@ def extract(
 
         if "error" in result:
             console.print(f"{rich_config.fail_style} Error occurred: {result['error']}")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
 
     except Exception as e:
         console.print(f"{rich_config.fail_style} Extraction failed: {e}")
         if verbose:
             console.print_exception()
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 @app.command()
@@ -223,7 +248,7 @@ def list_entities(
 
     except Exception as e:
         console.print(f"{rich_config.fail_style} Failed to load configuration: {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 @app.command()
@@ -265,7 +290,7 @@ def validate_config(
 
     except Exception as e:
         console.print(f"{rich_config.fail_style} Configuration validation failed: {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 @app.command()
@@ -322,7 +347,7 @@ def demo(
 
     except Exception as e:
         console.print(f"{rich_config.fail_style} Demo failed: {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 def _save_csv_results(result: dict, output_file: Path) -> None:

@@ -181,7 +181,11 @@ class InternVLComparison:
         self.logger.info(f"Comparison completed: {len(results)} prompts tested")
         return results
 
+<<<<<<< HEAD
     def _parse_response(self, response: str, prompt_name: str) -> Dict[str, Any]:
+=======
+    def _parse_response(self, response: str, _prompt_name: str) -> Dict[str, Any]:
+>>>>>>> 53cbe49 (✨ feat: Add comprehensive llama_vision package with CLI tools and document extraction capabilities)
         """Parse response using appropriate extraction method.
 
         Args:

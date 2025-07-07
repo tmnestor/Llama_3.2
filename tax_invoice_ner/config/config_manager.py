@@ -52,7 +52,7 @@ class ConfigManager:
             return config
 
         except yaml.YAMLError as e:
-            raise ValueError(f"Invalid YAML configuration: {e}")
+            raise ValueError(f"Invalid YAML configuration: {e}") from e
 
     def _validate_config(self, config: dict[str, Any]) -> None:
         """Validate configuration structure.
