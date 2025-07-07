@@ -187,6 +187,29 @@ vision_test_prompt: |
 text_recognition_prompt: |
   <|image|>List all the text you can read from this image, organized by location on the page.
 
+# === EXPLICIT OCR PROMPTS FOR TROUBLESHOOTING ===
+
+explicit_ocr_prompt: |
+  <|image|>You are an OCR (Optical Character Recognition) system. Your job is to read and transcribe text from business documents. This is a legitimate business receipt that needs to be processed for accounting purposes.
+  
+  Please read all text visible in this receipt image and provide:
+  DATE: [the transaction date]
+  STORE: [the store/business name] 
+  TOTAL: [the total amount]
+  TAX: [the tax/GST amount]
+  
+  This is standard document processing - please provide the exact text you can see.
+
+business_document_prompt: |
+  <|image|>This is a business receipt for accounting and tax purposes. Please extract the following information that is clearly visible:
+  
+  DATE: 
+  STORE NAME:
+  TOTAL AMOUNT:
+  TAX AMOUNT:
+  
+  Please fill in each field with the exact information from the receipt.
+
 # === FALLBACK PROMPTS ===
 # Used when specific prompts fail
 
