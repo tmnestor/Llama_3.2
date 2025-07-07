@@ -3,11 +3,13 @@
 Debug script for Llama-3.2-Vision model integrity and vision processing.
 """
 
-import torch
-from pathlib import Path
-from transformers import AutoProcessor, MllamaForConditionalGeneration
-from PIL import Image
 import os
+from pathlib import Path
+
+import torch
+from PIL import Image
+from transformers import AutoProcessor, MllamaForConditionalGeneration
+
 
 def check_model_integrity(model_path: str):
     """Check model files and configuration integrity."""
