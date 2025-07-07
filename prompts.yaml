@@ -1,0 +1,227 @@
+# ===================================================================
+# LLAMA-3.2-VISION PROMPT CONFIGURATION
+# ===================================================================
+# 
+# This file contains all prompts for the Llama-3.2-Vision receipt processing system.
+# Each prompt is optimized for specific document types and extraction requirements.
+#
+# NOTE: All prompts include <|image|> token which is REQUIRED for Llama-3.2-Vision
+# ===================================================================
+
+# === RECOMMENDED PRODUCTION PROMPTS (Key-Value Format) ===
+# These prompts provide superior robustness and parsing reliability
+
+key_value_receipt_prompt: |
+  <|image|>Extract information from this receipt for expense claim processing.
+  
+  CRITICAL: Use EXACT KEY-VALUE format below - NO JSON, NO other formats.
+  
+  DATE: [transaction date in DD/MM/YYYY format]
+  STORE: [business/store name]
+  TOTAL: [total amount with currency symbol]
+  TAX: [GST/tax amount]
+  ABN: [Australian Business Number if visible]
+  
+  EXAMPLE OUTPUT:
+  DATE: 15/06/2024
+  STORE: WOOLWORTHS SUPERMARKET
+  TOTAL: $42.08
+  TAX: $3.83
+  ABN: 88 000 014 675
+  
+  REQUIREMENTS:
+  - Only extract information clearly visible in the image
+  - Use Australian date format (DD/MM/YYYY)
+  - Include currency symbols for amounts
+  - Extract ABN in standard 11-digit format
+
+business_receipt_extraction_prompt: |
+  <|image|>Extract key information from this business receipt for expense reporting.
+  
+  Please provide the following in KEY: VALUE format:
+  
+  DATE: [transaction date]
+  STORE: [business name]
+  TOTAL: [total amount]
+  TAX: [tax amount]
+  ABN: [Australian Business Number]
+  ITEMS: [main items purchased]
+  
+  COMPLIANCE REQUIREMENTS:
+  - Must include GST details for amounts over $82.50
+  - ABN required for business expense claims
+  - Date must be in Australian format
+
+tax_invoice_extraction_prompt: |
+  <|image|>Extract information from this tax invoice for ATO compliance.
+  
+  Extract the following fields in KEY: VALUE format:
+  
+  DATE: [invoice date]
+  VENDOR: [supplier business name]
+  TOTAL: [total amount including GST]
+  GST: [GST amount]
+  ABN: [supplier ABN - required for tax invoices]
+  INVOICE_NUMBER: [invoice reference number]
+  
+  ATO COMPLIANCE REQUIREMENTS:
+  - Tax invoices over $82.50 must include supplier ABN
+  - GST must be clearly identified and calculated correctly
+  - All amounts must include currency symbols
+
+fuel_receipt_extraction_prompt: |
+  <|image|>Extract information from this fuel receipt for vehicle expense claims.
+  
+  Provide the following in KEY: VALUE format:
+  
+  DATE: [purchase date]
+  STATION: [fuel station name]
+  TOTAL: [total amount paid]
+  LITRES: [fuel quantity in litres]
+  PRICE_PER_LITRE: [fuel price per litre]
+  TAX: [GST amount]
+  ABN: [station ABN if visible]
+  
+  SPECIFIC REQUIREMENTS:
+  - Extract fuel quantity and price per litre for vehicle logs
+  - Include station location if visible
+  - GST component for tax purposes
+
+# === DOCUMENT CLASSIFICATION PROMPTS ===
+
+document_classification_prompt: |
+  <|image|>Analyze this document and classify it as one of the following types:
+  
+  - receipt: Store/business receipt for purchases
+  - tax_invoice: Official tax invoice with ABN details
+  - fuel_receipt: Petrol/fuel station receipt
+  - bank_statement: Bank account statement or transaction history
+  - unknown: Cannot determine or not a business document
+  
+  Respond with just the classification type and confidence level.
+
+# === CONVERSATIONAL EXTRACTION PROMPTS ===
+# These work well with Llama's natural conversational style
+
+conversational_receipt_prompt: |
+  <|image|>Please examine this receipt and tell me:
+  
+  1. What is the date of this transaction?
+  2. What store or business is this from?
+  3. What is the total amount paid?
+  4. How much tax/GST was charged?
+  5. Is there an ABN visible on the receipt?
+  
+  Please be specific and provide exact values from the receipt.
+
+detailed_analysis_prompt: |
+  <|image|>Analyze this receipt and provide detailed information about:
+  
+  - Transaction date
+  - Business/store name
+  - Individual items purchased (if clearly visible)
+  - Subtotal, tax, and total amounts
+  - Payment method used
+  - Any business registration numbers (ABN)
+  
+  Focus on information relevant for expense reporting and tax compliance.
+
+# === SPECIALIZED EXTRACTION PROMPTS ===
+
+ocr_style_prompt: |
+  <|image|>Read all the text visible on this receipt and identify the key information:
+  
+  Look for and extract:
+  - Store name and location
+  - Transaction date and time
+  - Item details and prices
+  - Subtotal, tax, and total amounts
+  - Payment information
+  - Business identification numbers
+  
+  Present the information clearly for expense processing.
+
+structured_data_prompt: |
+  <|image|>Extract receipt information in a structured format:
+  
+  TRANSACTION DETAILS:
+  Date: [transaction date]
+  Time: [transaction time if visible]
+  
+  BUSINESS DETAILS:
+  Name: [business name]
+  Address: [business address if visible]
+  ABN: [Australian Business Number]
+  
+  FINANCIAL DETAILS:
+  Subtotal: [amount before tax]
+  Tax/GST: [tax amount]
+  Total: [final amount]
+  
+  Only include information that is clearly visible in the image.
+
+# === SIMPLE EXTRACTION PROMPTS ===
+# For basic extraction needs
+
+simple_receipt_prompt: |
+  <|image|>Extract the essential information from this receipt:
+  
+  - Date
+  - Store name
+  - Total amount
+  - Tax amount
+  
+  Provide clear, exact values.
+
+minimal_extraction_prompt: |
+  <|image|>What store is this receipt from, what is the date, and what is the total amount?
+
+quick_scan_prompt: |
+  <|image|>Quickly identify: store name, date, and total amount from this receipt.
+
+# === DEBUGGING AND TESTING PROMPTS ===
+
+vision_test_prompt: |
+  <|image|>What do you see in this image? Describe the document type and any text you can read.
+
+text_recognition_prompt: |
+  <|image|>List all the text you can read from this image, organized by location on the page.
+
+# === FALLBACK PROMPTS ===
+# Used when specific prompts fail
+
+generic_document_prompt: |
+  <|image|>Analyze this document and extract any key information such as:
+  - Business/organization name
+  - Date
+  - Amounts or financial information
+  - Reference numbers
+  - Contact details
+
+fallback_extraction_prompt: |
+  <|image|>Extract any useful information from this document for business expense purposes.
+
+# === PROMPT METADATA ===
+# Configuration for prompt selection and usage
+
+prompt_metadata:
+  recommended_prompts:
+    - key_value_receipt_prompt
+    - business_receipt_extraction_prompt
+    - tax_invoice_extraction_prompt
+  
+  document_type_mapping:
+    receipt: business_receipt_extraction_prompt
+    tax_invoice: tax_invoice_extraction_prompt
+    fuel_receipt: fuel_receipt_extraction_prompt
+    unknown: generic_document_prompt
+  
+  testing_prompts:
+    - vision_test_prompt
+    - text_recognition_prompt
+  
+  fallback_chain:
+    - key_value_receipt_prompt
+    - conversational_receipt_prompt
+    - generic_document_prompt
+    - fallback_extraction_prompt
