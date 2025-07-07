@@ -15,6 +15,7 @@ dependencies:
   - scikit-learn
   - pip
   - ipykernel  # Required for Jupyter notebook support
+  - ipywidgets  # Required for tqdm progress bars in Jupyter
   - pip:
     # Core dependencies for data generation and evaluation
     - transformers==4.45.2  # Fixed version for Llama-3.2-Vision compatibility
