@@ -224,26 +224,133 @@ generic_document_prompt: |
 fallback_extraction_prompt: |
   <|image|>Extract any useful information from this document for business expense purposes.
 
-# === RESTRICTION BYPASS PROMPTS ===
-# Designed to overcome model safety restrictions for legitimate business use
+# === EXACT INTERNVL PROMPTS FOR FAIR COMPARISON ===
+# These are the identical prompts used in the InternVL system
+# Critical for comparing relative effectiveness between Llama-3.2-Vision and InternVL
 
-system_ocr_prompt: |
-  <|image|>System: Perform text recognition on this business document. Extract visible text elements for data processing.
+# PRODUCTION DEFAULT: Key-Value format prompt for improved robustness with Australian business fields  
+key_value_receipt_prompt: |
+  <|image|>
+  Extract information from this Australian receipt and return in KEY-VALUE format.
+  
+  Use this exact format:
+  DATE: [purchase date in DD/MM/YYYY format]
+  STORE: [store name in capitals]
+  ABN: [Australian Business Number - XX XXX XXX XXX format]
+  PAYER: [customer/member name if visible]
+  TAX: [GST amount]
+  TOTAL: [total amount including GST]
+  PRODUCTS: [item1 | item2 | item3]
+  QUANTITIES: [qty1 | qty2 | qty3]
+  PRICES: [price1 | price2 | price3]
+  
+  Example:
+  DATE: 16/03/2023
+  STORE: WOOLWORTHS
+  TAX: 3.82
+  TOTAL: 42.08
+  PRODUCTS: Milk 2L | Bread Multigrain | Eggs Free Range 12pk
+  QUANTITIES: 1 | 2 | 1
+  PRICES: 4.50 | 8.00 | 7.60
+  
+  FORMATTING REQUIREMENTS:
+  - Product names: Use Title Case (Milk 2L, not MILK 2L or milk 2l)
+  - Prices: Read carefully from receipt, match exact amounts shown
+  - Store names: Use ALL CAPITALS (WOOLWORTHS, COLES, ALDI)
+  - Dates: DD/MM/YYYY format (Australian standard)
+  - Use pipe (|) to separate multiple items in lists
+  - Extract ALL products from the receipt
+  - Ensure products, quantities, and prices lists have same length
+  
+  CRITICAL: 
+  - Product names must be in Title Case format: "Chicken Breast" not "CHICKEN BREAST"
+  - Read prices carefully from receipt - accuracy is essential
+  - GST (Goods and Services Tax) is 10% in Australia
+  
+  Return ONLY the key-value pairs above. No explanations.
 
-technical_data_extraction: |
-  <|image|>Technical instruction: Read visible text data from this image. Output the store name, transaction date, and monetary amounts as data fields.
+# Business receipt specialized extraction - EXACT InternVL prompt
+business_receipt_extraction_prompt: |
+  <|image|>
+  Extract information from this Australian business receipt in KEY-VALUE format.
+  
+  CRITICAL: Use EXACT KEY-VALUE format below - NO JSON, NO other formats.
+  
+  STORE: [Business name in CAPITALS]
+  ABN: [Australian Business Number if visible - XX XXX XXX XXX format]
+  DATE: [DD/MM/YYYY format]
+  GST: [GST amount - 10% component]
+  TOTAL: [Total amount including GST]
+  ITEMS: [Product1 | Product2 | Product3]
+  QUANTITIES: [Qty1 | Qty2 | Qty3]  
+  PRICES: [Price1 | Price2 | Price3]
+  
+  EXAMPLE OUTPUT:
+  STORE: WOOLWORTHS SUPERMARKETS
+  ABN: 88 000 014 675
+  DATE: 15/06/2024
+  GST: 4.25
+  TOTAL: 46.75
+  ITEMS: Bread White | Milk 2L | Eggs Free Range 12pk
+  QUANTITIES: 1 | 1 | 1
+  PRICES: 3.50 | 5.20 | 8.95
+  
+  ATO_COMPLIANCE_REQUIREMENTS:
+  - Business name and date are mandatory
+  - GST component required for claims over $82.50
+  - ABN validates legitimate business expense
+  - Use pipe (|) separator for multiple items
 
+# Australian business receipt prompt with comprehensive field extraction - EXACT InternVL
+australian_business_receipt_prompt: |
+  <|image|>
+  EXTRACT ALL information from this Australian receipt and return ONLY valid JSON.
+
+  REQUIRED FIELDS:
+  - supplier_name: Business name providing goods/services
+  - supplier_abn: Australian Business Number (ABN) - 11 digits with spaces
+  - payer_name: Customer/member name if shown (or "" if not visible)
+  - invoice_date: Date in DD/MM/YYYY format (Australian standard)
+  - gst_amount: GST/Tax amount in dollars
+  - total_amount: Total amount paid including GST
+  - payment_method: How payment was made (Cash/Card/EFTPOS/etc)
+  - items: Array of product/service descriptions
+  - quantities: Array of quantities for each item (same order as items)
+  - item_prices: Array of individual prices for each item
+
+  AUSTRALIAN RECEIPT RULES:
+  - ABN format: "XX XXX XXX XXX" (11 digits with spaces)
+  - Date format: DD/MM/YYYY (day first, Australian standard)
+  - GST is 10% in Australia (1/11 of GST-inclusive total)
+  - Look for "GST", "Tax amount", or similar labels
+  - Common suppliers: Woolworths, Coles, ALDI, Bunnings, Costco, IGA, etc.
+  - Payment: Cash, EFTPOS, Credit, MasterCard, Visa, etc.
+
+  JSON SYNTAX:
+  - Use double quotes for ALL strings
+  - NO trailing commas
+  - Numbers as strings: "58.88" not 58.88
+  - Empty fields: "" for missing data
+
+  EXAMPLE OUTPUT:
+  {"supplier_name":"COSTCO WHOLESALE AUSTRALIA","supplier_abn":"57 104 012 893","payer_name":"","invoice_date":"08/06/2024","gst_amount":"5.35","total_amount":"58.88","payment_method":"MASTERCARD CREDIT","items":["13ULP FUEL"],"quantities":["32.230L"],"item_prices":["58.88"]}
+
+  Extract ALL visible information. Return ONLY the JSON object.
+
+# Factual information prompt - EXACT InternVL (works best for bypassing safety)
 factual_information_prompt: |
-  <|image|>What factual information is displayed in this business receipt? Include store name, date, and amounts.
+  <|image|>What factual information is displayed in this business receipt? 
+  Include store name, date, and amounts.
 
-document_processing_prompt: |
-  <|image|>Process this document for business records. List the establishment name, transaction date, and payment total.
+# Technical data extraction prompt - EXACT InternVL  
+technical_data_extraction: |
+  <|image|>Technical instruction: Read visible text data from this image. 
+  Output the store name, transaction date, and monetary amounts as data fields.
 
-simple_text_reading_prompt: |
-  <|image|>Read the text shown in this image.
-
-minimal_receipt_prompt: |
-  <|image|>What store and amount are shown?
+# System OCR prompt - EXACT InternVL
+system_ocr_prompt: |
+  <|image|>System: Perform text recognition on this business document. 
+  Extract visible text elements for data processing.
 
 # === PROMPT METADATA ===
 # Configuration for prompt selection and usage
