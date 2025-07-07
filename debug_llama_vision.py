@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Debug script for Llama-3.2-Vision tensor issues."""
 
-import torch
-from transformers import AutoProcessor, MllamaForConditionalGeneration
-from PIL import Image
 import traceback
+
+import torch
+from PIL import Image
+from transformers import AutoProcessor, MllamaForConditionalGeneration
 
 print("🔍 LLAMA VISION DEBUG SCRIPT")
 print("=" * 50)
@@ -99,7 +100,7 @@ try:
     try:
         test_text = f"{image_token}\nWhat is this?"
         encoded = tokenizer.encode(test_text, return_tensors="pt")
-        print(f"✅ Can encode image token in text")
+        print("✅ Can encode image token in text")
     except Exception as e:
         print(f"❌ Cannot encode image token: {e}")
         
