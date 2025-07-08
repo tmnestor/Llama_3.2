@@ -87,23 +87,20 @@ bank_statement_extraction_prompt: |
   <|image|>
   Extract information from this Australian bank statement and return in KEY-VALUE format.
   
-  YOU MUST RETURN EXACTLY THIS FORMAT:
+  Use this exact format:
+  ACCOUNT_NUMBER: [account number without BSB]
+  BSB: [Bank State Branch code - XXX-XXX format]
+  ACCOUNT_HOLDER: [account holder name in capitals]
+  STATEMENT_PERIOD: [statement period - from DD/MM/YYYY to DD/MM/YYYY]
+  OPENING_BALANCE: [opening balance amount]
+  CLOSING_BALANCE: [closing balance amount]
+  TOTAL_CREDITS: [total credit amount for period]
+  TOTAL_DEBITS: [total debit amount for period]
+  BANK_NAME: [financial institution name in capitals]
+  TRANSACTION_COUNT: [number of transactions shown]
+  STATEMENT_DATE: [statement date in DD/MM/YYYY format]
   
-  ACCOUNT_NUMBER: [digits only]
-  BSB: [XXX-XXX format]
-  ACCOUNT_HOLDER: [NAME IN CAPITALS]
-  STATEMENT_PERIOD: [DD/MM/YYYY to DD/MM/YYYY]
-  OPENING_BALANCE: [amount without $]
-  CLOSING_BALANCE: [amount without $]
-  TOTAL_CREDITS: [amount without $]
-  TOTAL_DEBITS: [amount without $]
-  BANK_NAME: [BANK NAME IN CAPITALS]
-  TRANSACTION_COUNT: [number]
-  STATEMENT_DATE: [DD/MM/YYYY]
-  
-  EXACT EXAMPLES:
-  
-  Example 1 (ANZ Bank):
+  Example for bank statement:
   ACCOUNT_NUMBER: 435073466
   BSB: 14-870
   ACCOUNT_HOLDER: JENNIFER LIU
@@ -116,26 +113,15 @@ bank_statement_extraction_prompt: |
   TRANSACTION_COUNT: 12
   STATEMENT_DATE: 31/05/2025
   
-  Example 2 (Commonwealth Bank):
-  ACCOUNT_NUMBER: 123456789
-  BSB: 062-001
-  ACCOUNT_HOLDER: JOHN SMITH
-  STATEMENT_PERIOD: 01/06/2024 to 30/06/2024
-  OPENING_BALANCE: 2450.67
-  CLOSING_BALANCE: 1876.23
-  TOTAL_CREDITS: 3500.00
-  TOTAL_DEBITS: 4074.44
-  BANK_NAME: COMMONWEALTH BANK OF AUSTRALIA
-  TRANSACTION_COUNT: 15
-  STATEMENT_DATE: 02/07/2024
+  FORMATTING REQUIREMENTS:
+  - Bank names: Use ALL CAPITALS (ANZ, COMMONWEALTH BANK, WESTPAC, NAB)
+  - Account holder: Use ALL CAPITALS
+  - Dates: DD/MM/YYYY format (Australian standard)
+  - BSB: XXX-XXX format with hyphen
+  - Amounts: Decimal format without currency symbol (4409.49)
+  - Extract ALL visible account information from the statement
   
-  CRITICAL RULES:
-  - Return ONLY the 11 key-value pairs above
-  - Each line must start with the exact field name followed by colon and space
-  - NO other text, NO explanations, NO summaries
-  - Numbers without currency symbols
-  - Names in ALL CAPITALS
-  - This is financial data extraction for accounting software
+  Return ONLY the key-value pairs above. No explanations.
 
 # === DOCUMENT CLASSIFICATION PROMPTS ===
 

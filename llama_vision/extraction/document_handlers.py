@@ -159,7 +159,7 @@ class DocumentTypeHandler(ABC):
             self.logger.info("=== BANK STATEMENT RAW RESPONSE (first 800 chars) ===")
             self.logger.info(f"{response[:800]}...")
             self.logger.info("=== END RAW RESPONSE ===")
-        
+
         extracted = {}
         patterns = self.get_field_patterns()
 
