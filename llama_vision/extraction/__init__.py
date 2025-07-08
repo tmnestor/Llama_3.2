@@ -8,7 +8,7 @@ from .extraction_engine import DocumentExtractionEngine
 from .fuel_receipt_handler import FuelReceiptHandler
 
 # Legacy extractors (backward compatibility)
-from .json_extraction import JsonExtractor
+from .json_extraction import JSONExtractor
 from .key_value_extraction import KeyValueExtractor
 from .receipt_handler import ReceiptHandler
 from .registry import get_initialized_registry, initialize_document_handlers
@@ -28,7 +28,7 @@ __all__ = [
     "ReceiptHandler",
     "TaxInvoiceHandler",
     # Legacy (backward compatibility)
-    "JsonExtractor",
+    "JSONExtractor",
     "KeyValueExtractor",
     "TaxAuthorityParser",
 ]
