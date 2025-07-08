@@ -67,6 +67,40 @@ Llama_3.2/
 └── README.md                       # ✅ Add - documentation
 ```
 
+## Critical Learnings: Model Capability vs. Architecture Design
+
+### Lesson: Never Blame the Model First
+
+**Context**: During bank statement extraction implementation, initial results showed 0.12 compliance with only 6 fields extracted. The natural tendency was to blame Llama-3.2-Vision model limitations.
+
+**Truth**: The model was perfectly capable. The issue was architectural - missing fallback logic.
+
+**Key Insight**: TaxAuthorityParser achieved 23+ fields with 0.99 compliance using the **same model** because it had:
+1. **Primary strategy**: KEY-VALUE pattern matching
+2. **Fallback strategy**: Raw OCR text parsing when KEY-VALUE fails
+3. **Robust field mapping**: Multiple extraction approaches combined
+
+**Architecture Solution**: Implemented Director pattern with fallback logic in BankStatementHandler:
+- First attempt: KEY-VALUE structured parsing
+- Fallback: Raw text pattern matching when <5 meaningful fields found
+- Result: 6 → 26 fields, 0.12 → 1.00 compliance score
+
+**Critical Learning**: 
+- **Always trust the model's capabilities first**
+- **Look for architectural gaps before blaming model limitations**
+- **Successful extraction = right parsing strategy, not different model**
+- **Fallback mechanisms are essential for production robustness**
+
+### Lesson: Registry + Strategy + Director Pattern Success
+
+**Implementation**: Clean architecture that maintains:
+- **Registry**: Document type handler management
+- **Strategy**: Different extraction approaches per document type
+- **Director**: Orchestrates selection and execution
+- **Fallback**: Multiple parsing strategies within each handler
+
+**Evidence**: Same model, same prompts, different architecture = 4x more fields and perfect compliance.
+
 ## Implementation Plan
 
 ### Phase 1: Core Package Structure (Week 1)

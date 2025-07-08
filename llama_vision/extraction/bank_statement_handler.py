@@ -167,31 +167,32 @@ class BankStatementHandler(DocumentTypeHandler):
         """
         # First try the standard KEY-VALUE approach
         result = super().extract_fields(response)
-        
-        self.logger.info(f"KEY-VALUE extraction found {result.field_count} fields: {list(result.fields.keys())}")
-        
-        # If we found less than 7 fields (most of our 11 required fields), use fallback pattern matching
-        if result.field_count < 7:
+
+        # If we found less than 5 meaningful fields, use fallback pattern matching
+        # (accounts for metadata fields like currency, country, _extraction_method)
+        if result.field_count < 5:
             self.logger.debug(
                 f"KEY-VALUE parsing found only {result.field_count} fields, trying fallback pattern matching..."
             )
             fallback_fields = self._extract_from_raw_text(response)
-            
+
             # Merge fallback fields with any successful KEY-VALUE fields
             combined_fields = result.fields.copy()
             combined_fields.update(fallback_fields)
-            
+
             # Apply field mappings
             mappings = self.get_field_mappings()
             normalized = self._apply_field_mappings(combined_fields, mappings)
-            
+
             # Recalculate compliance score
             required_patterns = [p for p in self.get_field_patterns() if p.required]
-            required_found = sum(1 for p in required_patterns if p.field_name in normalized)
+            required_found = sum(
+                1 for p in required_patterns if p.field_name in normalized
+            )
             compliance_score = (
                 required_found / len(required_patterns) if required_patterns else 1.0
             )
-            
+
             return ExtractionResult(
                 fields=normalized,
                 extraction_method=f"{self.document_type}_handler_with_fallback",
@@ -206,44 +207,44 @@ class BankStatementHandler(DocumentTypeHandler):
 
     def _extract_from_raw_text(self, response: str) -> Dict[str, Any]:
         """Extract fields from raw OCR text when KEY-VALUE format fails.
-        
+
         This is the fallback mechanism that makes TaxAuthorityParser successful.
-        
+
         Args:
             response: Raw model response text
-            
+
         Returns:
             Extracted fields dictionary
         """
         extracted = {}
-        
+
         # Extract account number - look for patterns like "Account Number: 435073466"
         account_patterns = [
             r"Account Number:\s*([0-9]+)",
-            r"account number:\s*([0-9]+)", 
+            r"account number:\s*([0-9]+)",
             r"Account:\s*([0-9]+)",
             r"Acc(?:ount)?[:\s]*([0-9]+)",
         ]
-        
+
         for pattern in account_patterns:
             match = re.search(pattern, response, re.IGNORECASE)
             if match:
                 extracted["ACCOUNT_NUMBER"] = match.group(1)
                 break
-        
+
         # Extract BSB - look for patterns like "BSB: 14-870"
         bsb_patterns = [
             r"BSB:\s*([0-9]{2,3}-[0-9]{3})",
             r"bsb:\s*([0-9]{2,3}-[0-9]{3})",
             r"BSB[:\s]*([0-9]{2,3}-[0-9]{3})",
         ]
-        
+
         for pattern in bsb_patterns:
             match = re.search(pattern, response, re.IGNORECASE)
             if match:
                 extracted["BSB"] = match.group(1)
                 break
-        
+
         # Extract account holder name - look for patterns like "Account Jennifer Liu"
         name_patterns = [
             r"Account\s+([A-Z][a-z]+\s+[A-Z][a-z]+)\s+BSB",
@@ -251,7 +252,7 @@ class BankStatementHandler(DocumentTypeHandler):
             r"Account Holder[:\s]*([A-Z][a-zA-Z\s]+)",
             r"Name[:\s]*([A-Z][a-zA-Z\s]+)",
         ]
-        
+
         for pattern in name_patterns:
             match = re.search(pattern, response, re.IGNORECASE)
             if match:
@@ -259,27 +260,29 @@ class BankStatementHandler(DocumentTypeHandler):
                 if len(name) > 3:  # Reasonable name length
                     extracted["ACCOUNT_HOLDER"] = name.upper()
                     break
-        
+
         # Extract statement period from dates like "01/05/2025 31/05/2025"
         period_patterns = [
             r"([0-9]{2}/[0-9]{2}/[0-9]{4})\s+([0-9]{2}/[0-9]{2}/[0-9]{4})",
             r"from\s+([0-9]{2}/[0-9]{2}/[0-9]{4})\s+to\s+([0-9]{2}/[0-9]{2}/[0-9]{4})",
         ]
-        
+
         for pattern in period_patterns:
             match = re.search(pattern, response, re.IGNORECASE)
             if match:
                 extracted["STATEMENT_PERIOD"] = f"{match.group(1)} to {match.group(2)}"
-                extracted["STATEMENT_DATE"] = match.group(2)  # End date as statement date
+                extracted["STATEMENT_DATE"] = match.group(
+                    2
+                )  # End date as statement date
                 break
-        
-        # Extract balances from patterns like "$4409.49" 
+
+        # Extract balances from patterns like "$4409.49"
         balance_amounts = re.findall(r"\$([0-9]+\.[0-9]{2})", response)
         if len(balance_amounts) >= 2:
             # First balance found is likely opening, last is likely closing
             extracted["OPENING_BALANCE"] = balance_amounts[0]
             extracted["CLOSING_BALANCE"] = balance_amounts[-1]
-        
+
         # Extract bank name
         bank_patterns = [
             r"(ANZ)\s+BANK",
@@ -288,12 +291,14 @@ class BankStatementHandler(DocumentTypeHandler):
             r"(NAB)",
             r"(ANZ)",
         ]
-        
+
         for pattern in bank_patterns:
             match = re.search(pattern, response, re.IGNORECASE)
             if match:
                 extracted["BANK_NAME"] = match.group(1).upper()
                 break
-        
-        self.logger.debug(f"Fallback extraction found {len(extracted)} fields: {list(extracted.keys())}")
+
+        self.logger.debug(
+            f"Fallback extraction found {len(extracted)} fields: {list(extracted.keys())}"
+        )
         return extracted

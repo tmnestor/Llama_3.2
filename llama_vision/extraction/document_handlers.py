@@ -154,12 +154,6 @@ class DocumentTypeHandler(ABC):
         Returns:
             Extraction result with fields and metadata
         """
-        # Debug logging for bank statements
-        if self.document_type == "bank_statement":
-            self.logger.info("=== BANK STATEMENT RAW RESPONSE (first 800 chars) ===")
-            self.logger.info(f"{response[:800]}...")
-            self.logger.info("=== END RAW RESPONSE ===")
-
         extracted = {}
         patterns = self.get_field_patterns()
 
@@ -167,17 +161,6 @@ class DocumentTypeHandler(ABC):
         for pattern_def in patterns:
             pattern = re.compile(pattern_def.pattern, re.IGNORECASE)
             match = pattern.search(response)
-
-            # Debug logging for bank statements
-            if self.document_type == "bank_statement":
-                if match:
-                    self.logger.info(
-                        f"✓ Pattern matched: {pattern_def.field_name} = '{match.group(1).strip()}'"
-                    )
-                else:
-                    self.logger.info(
-                        f"✗ Pattern failed: {pattern_def.field_name} (pattern: {pattern_def.pattern})"
-                    )
 
             if match:
                 value = match.group(1).strip()
