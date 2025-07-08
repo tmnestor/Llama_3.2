@@ -46,7 +46,7 @@ class TaxAuthorityParser:
             self.logger.debug(
                 f"KEY-VALUE parsing successful with {len(parsed)} fields, skipping pattern matching"
             )
-            # Normalize KEY-VALUE fields to tax authority standards
+            # Normalize KEY-VALUE fields to tax authority standards (replace duplicates)
             parsed = self._normalize_key_value_fields(parsed)
 
         # Extract product items (for detailed expense tracking)
@@ -172,7 +172,8 @@ class TaxAuthorityParser:
             "payment_method": ["PAYMENT_METHOD"],
         }
 
-        # Apply field mappings (avoid duplicates)
+        # Apply field mappings and remove source duplicates
+        sources_to_remove = set()
         for target_field, source_fields in field_mappings.items():
             for source_field in source_fields:
                 if source_field in parsed and target_field not in normalized:
@@ -191,36 +192,47 @@ class TaxAuthorityParser:
                             normalized[target_field] = value
                     else:
                         normalized[target_field] = value
+
+                    # Mark all source fields for removal to avoid duplicates
+                    sources_to_remove.update(source_fields)
                     break  # Use first match only
 
+        # Remove the original source fields to eliminate duplicates
+        for source_field in sources_to_remove:
+            if source_field in parsed:
+                del parsed[source_field]
+
+        # Add normalized fields to the parsed dictionary
+        parsed.update(normalized)
+
         # Add essential fields for compliance calculation
-        if "supplier_name" in normalized:
-            normalized["taxpayer_name"] = normalized["supplier_name"]
+        if "supplier_name" in parsed:
+            parsed["taxpayer_name"] = parsed["supplier_name"]
 
         # Add currency and country for Australian compliance
-        normalized["currency"] = "AUD"
-        normalized["country"] = "Australia"
+        parsed["currency"] = "AUD"
+        parsed["country"] = "Australia"
 
         # Calculate GST compliance if amounts available
-        if "total_amount" in normalized and "gst_amount" in normalized:
+        if "total_amount" in parsed and "gst_amount" in parsed:
             try:
-                total = float(normalized["total_amount"])
-                gst = float(normalized["gst_amount"])
+                total = float(parsed["total_amount"])
+                gst = float(parsed["gst_amount"])
                 if total > 0:
                     gst_rate = (gst / total) * 100
-                    normalized["calculated_gst_rate"] = f"{gst_rate:.1f}%"
+                    parsed["calculated_gst_rate"] = f"{gst_rate:.1f}%"
                     # Australian GST is 10%
-                    normalized["gst_compliant"] = abs(gst_rate - 10.0) < 1.0
+                    parsed["gst_compliant"] = abs(gst_rate - 10.0) < 1.0
             except (ValueError, ZeroDivisionError):
                 pass
 
         # Add expense category
-        normalized["expense_category"] = "General Business Expenses"
+        parsed["expense_category"] = "General Business Expenses"
 
         self.logger.debug(
-            f"Normalized {len(parsed)} KEY-VALUE fields to {len(normalized)} tax authority fields"
+            f"Normalized KEY-VALUE fields, removed duplicates. Final count: {len(parsed)} fields"
         )
-        return normalized
+        return parsed
 
     def _parse_with_patterns(self, response: str) -> Dict[str, Any]:
         """Fallback pattern-based parsing for non-KEY-VALUE responses.
