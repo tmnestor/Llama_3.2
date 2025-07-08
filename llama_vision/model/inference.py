@@ -124,14 +124,18 @@ class LlamaInferenceEngine:
         Returns:
             Cleaned response text
         """
-        # Remove excessive repetition of "au" (common artifact)
         import re
         
-        # Remove repetitive "au au au..." patterns
-        response = re.sub(r'\b(?:au\s+){5,}', '', response, flags=re.IGNORECASE)
+        # Remove excessive repetition of ANY word repeated 3+ times consecutively
+        # This catches "au au au", "the the the", "hello hello hello", etc.
+        response = re.sub(r'\b(\w+)(\s+\1){2,}', r'\1', response, flags=re.IGNORECASE)
         
-        # Remove excessive repetition of any short word (2-3 chars) repeated 5+ times
-        response = re.sub(r'\b(\w{2,3})\s+(?:\1\s+){4,}', '', response, flags=re.IGNORECASE)
+        # Remove excessive repetition of longer phrases (up to 3 words) repeated 3+ times
+        # This catches "Thank you Thank you Thank you" or "Visit costco Visit costco" etc.
+        response = re.sub(r'\b((?:\w+\s+){1,3})(?:\1){2,}', r'\1', response, flags=re.IGNORECASE)
+        
+        # Remove excessive repetition of any short token/phrase (1-5 chars) repeated 5+ times
+        response = re.sub(r'\b(\w{1,5})\s+(?:\1\s+){4,}', '', response, flags=re.IGNORECASE)
         
         # Stop at common receipt endings
         stop_patterns = [
