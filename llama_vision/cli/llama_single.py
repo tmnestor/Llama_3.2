@@ -276,7 +276,8 @@ def smart_extract(
             prompt_task = progress.add_task("Selecting optimal prompt...", total=None)
             try:
                 prompt = prompt_manager.get_prompt_for_document_type(
-                    document_type, classification_result.get('classification_response', '')
+                    document_type,
+                    classification_result.get("classification_response", ""),
                 )
                 selected_prompt_name = f"{document_type}_optimized"
             except KeyError:

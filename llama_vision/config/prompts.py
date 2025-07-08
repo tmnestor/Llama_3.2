@@ -90,7 +90,9 @@ class PromptManager:
 
         return self.prompts[prompt_name]
 
-    def get_prompt_for_document_type(self, document_type: str, classification_response: str = "") -> str:
+    def get_prompt_for_document_type(
+        self, document_type: str, classification_response: str = ""
+    ) -> str:
         """Get the recommended prompt for a specific document type.
 
         Args:
@@ -103,13 +105,22 @@ class PromptManager:
         # Smart content-aware prompt selection for Australian tax invoices
         if document_type == "tax_invoice" and classification_response:
             # Check if this tax invoice contains fuel indicators
-            fuel_indicators = ['costco', 'ulp', 'unleaded', 'diesel', 'litre', ' l ', 'fuel', 'petrol']
+            fuel_indicators = [
+                "costco",
+                "ulp",
+                "unleaded",
+                "diesel",
+                "litre",
+                " l ",
+                "fuel",
+                "petrol",
+            ]
             response_lower = classification_response.lower()
-            
+
             if any(indicator in response_lower for indicator in fuel_indicators):
                 # This is a fuel tax invoice - use fuel-specific prompt
                 return self.get_prompt("fuel_receipt_extraction_prompt")
-        
+
         # Default mapping
         type_mapping = self.metadata.get("document_type_mapping", {})
         prompt_name = type_mapping.get(document_type, "key_value_receipt_prompt")

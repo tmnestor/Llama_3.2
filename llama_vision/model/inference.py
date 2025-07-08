@@ -236,8 +236,11 @@ class LlamaInferenceEngine:
         # Use the improved classification prompt from prompts.yaml
         try:
             from ..config import PromptManager
+
             prompt_manager = PromptManager()
-            classification_prompt = prompt_manager.get_prompt("document_classification_prompt")
+            classification_prompt = prompt_manager.get_prompt(
+                "document_classification_prompt"
+            )
         except Exception:
             # Fallback to embedded prompt if PromptManager fails
             classification_prompt = """<|image|>Analyze document structure and format. Classify based on layout patterns:
@@ -257,16 +260,30 @@ Output document type only."""
             # Parse classification response with improved fuel detection
             # First check OCR content for fuel indicators (override classification if needed)
             response_text = response.lower()
-            
+
             # Look for fuel indicators in the actual OCR text
-            fuel_indicators = ['13ulp', 'ulp', 'unleaded', 'diesel', 'litre', ' l ', '.l ', 'price/l', 'per litre', 'fuel']
-            has_fuel_content = any(indicator in response_text for indicator in fuel_indicators)
-            
+            fuel_indicators = [
+                "13ulp",
+                "ulp",
+                "unleaded",
+                "diesel",
+                "litre",
+                " l ",
+                ".l ",
+                "price/l",
+                "per litre",
+                "fuel",
+            ]
+            has_fuel_content = any(
+                indicator in response_text for indicator in fuel_indicators
+            )
+
             # Look for quantity patterns that indicate fuel
             import re
-            fuel_quantity_pattern = r'\d+\.\d{2,3}\s*l\b|\d+\s*litre'
+
+            fuel_quantity_pattern = r"\d+\.\d{2,3}\s*l\b|\d+\s*litre"
             has_fuel_quantity = bool(re.search(fuel_quantity_pattern, response_text))
-            
+
             if "fuel_receipt" in response_lower or "fuel receipt" in response_lower:
                 doc_type = "fuel_receipt"
                 confidence = 0.90
@@ -274,9 +291,11 @@ Output document type only."""
                 # Override other classifications if we see clear fuel indicators
                 doc_type = "fuel_receipt"
                 confidence = 0.95
-                self.logger.info(f"Overriding classification to fuel_receipt based on content indicators")
+                self.logger.info(
+                    "Overriding classification to fuel_receipt based on content indicators"
+                )
             elif "fuel" in response_lower or "petrol" in response_lower:
-                doc_type = "fuel_receipt" 
+                doc_type = "fuel_receipt"
                 confidence = 0.85
             elif "tax_invoice" in response_lower or "tax invoice" in response_lower:
                 doc_type = "tax_invoice"
@@ -284,7 +303,9 @@ Output document type only."""
             elif "tax" in response_lower and "invoice" in response_lower:
                 doc_type = "tax_invoice"
                 confidence = 0.80
-            elif "bank_statement" in response_lower or "bank statement" in response_lower:
+            elif (
+                "bank_statement" in response_lower or "bank statement" in response_lower
+            ):
                 doc_type = "bank_statement"
                 confidence = 0.85
             elif "bank" in response_lower:
