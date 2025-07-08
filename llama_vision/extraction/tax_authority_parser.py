@@ -16,6 +16,7 @@ class TaxAuthorityParser:
         Args:
             log_level: Logging level
         """
+        self.log_level = log_level
         self.logger = setup_logging(log_level)
 
     def parse_receipt_response(self, response: str) -> Dict[str, Any]:

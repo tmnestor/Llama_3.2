@@ -185,20 +185,27 @@ class LlamaInferenceEngine:
 
             # Generate with CUDA-safe parameters (NO repetition_penalty)
             # Use optimized settings for receipt extraction
-            with torch.no_grad():
-                outputs = self.model.generate(
-                    **inputs,
-                    max_new_tokens=self.config.max_tokens,
-                    do_sample=self.config.do_sample,
-                    temperature=self.config.temperature,
-                    top_p=self.config.top_p,
-                    top_k=self.config.top_k,
-                    # repetition_penalty removed to avoid CUDA ScatterGatherKernel error
-                    pad_token_id=self.processor.tokenizer.eos_token_id,
-                    eos_token_id=self.processor.tokenizer.eos_token_id,
-                    # Performance optimizations
-                    use_cache=True,
+            generation_kwargs = {
+                **inputs,
+                "max_new_tokens": self.config.max_tokens,
+                "do_sample": self.config.do_sample,
+                "pad_token_id": self.processor.tokenizer.eos_token_id,
+                "eos_token_id": self.processor.tokenizer.eos_token_id,
+                "use_cache": True,
+            }
+
+            # Only add sampling parameters if sampling is enabled
+            if self.config.do_sample:
+                generation_kwargs.update(
+                    {
+                        "temperature": self.config.temperature,
+                        "top_p": self.config.top_p,
+                        "top_k": self.config.top_k,
+                    }
                 )
+
+            with torch.no_grad():
+                outputs = self.model.generate(**generation_kwargs)
 
             # Decode response - extract only the new tokens
             response = self.processor.decode(
