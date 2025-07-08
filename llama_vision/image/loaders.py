@@ -1,5 +1,6 @@
 """Image loading utilities for Llama-3.2-Vision package."""
 
+import concurrent.futures
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -9,14 +10,23 @@ from ..utils import setup_logging
 class ImageLoader:
     """Load and validate images for processing."""
 
-    def __init__(self, log_level: str = "INFO"):
+    def __init__(
+        self,
+        log_level: str = "INFO",
+        max_workers: int = 4,
+        enable_parallel: bool = True,
+    ):
         """Initialize image loader.
 
         Args:
             log_level: Logging level
+            max_workers: Maximum number of worker threads for parallel processing
+            enable_parallel: Whether to enable parallel processing
         """
         self.logger = setup_logging(log_level)
         self.supported_extensions = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp"}
+        self.max_workers = max_workers
+        self.enable_parallel = enable_parallel
 
     def discover_images(
         self, path: str, recursive: bool = True
@@ -107,6 +117,13 @@ class ImageLoader:
         if not path.exists():
             return []
 
+        if self.enable_parallel and len(self.supported_extensions) > 1:
+            return self._find_images_parallel(path, recursive)
+        else:
+            return self._find_images_sequential(path, recursive)
+
+    def _find_images_sequential(self, path: Path, recursive: bool = True) -> List[Path]:
+        """Find image files sequentially (original implementation)."""
         image_files = []
 
         if recursive:
@@ -122,7 +139,45 @@ class ImageLoader:
 
         # Sort by modification time (newest first)
         image_files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
+        return image_files
 
+    def _find_images_parallel(self, path: Path, recursive: bool = True) -> List[Path]:
+        """Find image files using parallel workers for better performance."""
+
+        def search_extension(ext):
+            """Search for files with a specific extension."""
+            files = []
+            if recursive:
+                files.extend(path.rglob(f"*{ext}"))
+                files.extend(path.rglob(f"*{ext.upper()}"))
+            else:
+                files.extend(path.glob(f"*{ext}"))
+                files.extend(path.glob(f"*{ext.upper()}"))
+            return files
+
+        image_files = []
+
+        # Use ThreadPoolExecutor for parallel file system operations
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=min(self.max_workers, len(self.supported_extensions))
+        ) as executor:
+            # Submit tasks for each extension
+            future_to_ext = {
+                executor.submit(search_extension, ext): ext
+                for ext in self.supported_extensions
+            }
+
+            # Collect results
+            for future in concurrent.futures.as_completed(future_to_ext):
+                try:
+                    files = future.result()
+                    image_files.extend(files)
+                except Exception as e:
+                    ext = future_to_ext[future]
+                    self.logger.warning(f"Error searching for {ext} files: {e}")
+
+        # Sort by modification time (newest first)
+        image_files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
         return image_files
 
     def load_image_batch(
@@ -144,8 +199,19 @@ class ImageLoader:
             "validation_errors": [],
         }
 
-        self.logger.info(f"Loading batch of {len(image_paths)} images")
+        self.logger.info(
+            f"Loading batch of {len(image_paths)} images (parallel: {self.enable_parallel})"
+        )
 
+        if self.enable_parallel and len(image_paths) > 1:
+            return self._load_image_batch_parallel(image_paths, validate, results)
+        else:
+            return self._load_image_batch_sequential(image_paths, validate, results)
+
+    def _load_image_batch_sequential(
+        self, image_paths: List[str], validate: bool, results: Dict
+    ) -> Dict[str, any]:
+        """Load images sequentially (original implementation)."""
         for i, image_path in enumerate(image_paths, 1):
             self.logger.debug(
                 f"Processing image {i}/{len(image_paths)}: {Path(image_path).name}"
@@ -174,6 +240,72 @@ class ImageLoader:
         success_rate = len(results["successful"]) / len(image_paths) * 100
         self.logger.info(
             f"Batch loading completed: {len(results['successful'])}/{len(image_paths)} successful ({success_rate:.1f}%)"
+        )
+
+        return results
+
+    def _load_image_batch_parallel(
+        self, image_paths: List[str], validate: bool, results: Dict
+    ) -> Dict[str, any]:
+        """Load images using parallel workers for better performance."""
+
+        def process_image(image_path: str):
+            """Process a single image with validation."""
+            try:
+                if validate:
+                    from .preprocessing import validate_image
+
+                    is_valid, error_msg = validate_image(image_path)
+
+                    if not is_valid:
+                        return {
+                            "status": "validation_failed",
+                            "path": image_path,
+                            "error": error_msg,
+                        }
+
+                # Image is valid
+                return {"status": "success", "path": image_path}
+
+            except Exception as e:
+                return {"status": "error", "path": image_path, "error": str(e)}
+
+        # Process images in parallel
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=self.max_workers
+        ) as executor:
+            # Submit all image processing tasks
+            future_to_path = {
+                executor.submit(process_image, image_path): image_path
+                for image_path in image_paths
+            }
+
+            # Collect results
+            for future in concurrent.futures.as_completed(future_to_path):
+                try:
+                    result = future.result()
+
+                    if result["status"] == "success":
+                        results["successful"].append(result["path"])
+                    elif result["status"] == "validation_failed":
+                        results["validation_errors"].append(
+                            {"path": result["path"], "error": result["error"]}
+                        )
+                        results["failed"].append(result["path"])
+                    else:  # error
+                        self.logger.error(
+                            f"Error processing {result['path']}: {result['error']}"
+                        )
+                        results["failed"].append(result["path"])
+
+                except Exception as e:
+                    image_path = future_to_path[future]
+                    self.logger.error(f"Unexpected error processing {image_path}: {e}")
+                    results["failed"].append(image_path)
+
+        success_rate = len(results["successful"]) / len(image_paths) * 100
+        self.logger.info(
+            f"Parallel batch loading completed: {len(results['successful'])}/{len(image_paths)} successful ({success_rate:.1f}%)"
         )
 
         return results

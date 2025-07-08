@@ -52,6 +52,11 @@ class LlamaConfig:
     process_batch_size: int = 1
     memory_cleanup_delay: int = 1
 
+    # Parallel processing settings
+    image_loader_workers: int = 4
+    max_concurrent_images: int = 8
+    enable_parallel_loading: bool = True
+
     # Australian compliance settings
     enable_abn_validation: bool = True
     enable_gst_validation: bool = True
@@ -71,67 +76,69 @@ def load_config() -> LlamaConfig:
     config = LlamaConfig(
         # Model configuration
         model_path=os.getenv(
-            "TAX_INVOICE_NER_MODEL_PATH",
+            "LLAMA_VISION_MODEL_PATH",
             "/home/jovyan/nfs_share/models/Llama-3.2-11B-Vision",
         ),
-        device=os.getenv("TAX_INVOICE_NER_DEVICE", "cuda"),
-        use_quantization=os.getenv("TAX_INVOICE_NER_USE_8BIT", "false").lower()
-        == "true",
-        quantization_type=os.getenv("TAX_INVOICE_NER_QUANTIZATION_TYPE", "int8"),
+        device=os.getenv("LLAMA_VISION_DEVICE", "cuda"),
+        use_quantization=os.getenv("LLAMA_VISION_USE_8BIT", "false").lower() == "true",
+        quantization_type=os.getenv("LLAMA_VISION_QUANTIZATION_TYPE", "int8"),
         # Generation parameters
-        max_tokens=int(os.getenv("TAX_INVOICE_NER_MAX_TOKENS", "1024")),
-        temperature=float(os.getenv("TAX_INVOICE_NER_TEMPERATURE", "0.3")),
-        do_sample=os.getenv("TAX_INVOICE_NER_DO_SAMPLE", "true").lower() == "true",
-        top_p=float(os.getenv("TAX_INVOICE_NER_TOP_P", "0.95")),
-        top_k=int(os.getenv("TAX_INVOICE_NER_TOP_K", "50")),
-        repetition_penalty=float(
-            os.getenv("TAX_INVOICE_NER_REPETITION_PENALTY", "1.1")
-        ),
-        pad_token_id=int(os.getenv("TAX_INVOICE_NER_PAD_TOKEN_ID", "-1")),
+        max_tokens=int(os.getenv("LLAMA_VISION_MAX_TOKENS", "1024")),
+        temperature=float(os.getenv("LLAMA_VISION_TEMPERATURE", "0.3")),
+        do_sample=os.getenv("LLAMA_VISION_DO_SAMPLE", "true").lower() == "true",
+        top_p=float(os.getenv("LLAMA_VISION_TOP_P", "0.95")),
+        top_k=int(os.getenv("LLAMA_VISION_TOP_K", "50")),
+        repetition_penalty=float(os.getenv("LLAMA_VISION_REPETITION_PENALTY", "1.1")),
+        pad_token_id=int(os.getenv("LLAMA_VISION_PAD_TOKEN_ID", "-1")),
         # Path configuration
         base_path=os.getenv(
-            "TAX_INVOICE_NER_BASE_PATH", "/home/jovyan/nfs_share/tod/Llama_3.2"
+            "LLAMA_VISION_BASE_PATH", "/home/jovyan/nfs_share/tod/Llama_3.2"
         ),
         image_path=os.getenv(
-            "TAX_INVOICE_NER_IMAGE_PATH", "/home/jovyan/nfs_share/tod/data/examples"
+            "LLAMA_VISION_IMAGE_PATH", "/home/jovyan/nfs_share/tod/data/examples"
         ),
         output_path=os.getenv(
-            "TAX_INVOICE_NER_OUTPUT_PATH", "/home/jovyan/nfs_share/tod/Llama_3.2/output"
+            "LLAMA_VISION_OUTPUT_PATH", "/home/jovyan/nfs_share/tod/Llama_3.2/output"
         ),
         config_path=os.getenv(
-            "TAX_INVOICE_NER_CONFIG_PATH",
+            "LLAMA_VISION_CONFIG_PATH",
             "/home/jovyan/nfs_share/tod/Llama_3.2/config/extractor/work_expense_ner_config.yaml",
         ),
         # Processing settings
         classification_max_tokens=int(
-            os.getenv("TAX_INVOICE_NER_CLASSIFICATION_MAX_TOKENS", "20")
+            os.getenv("LLAMA_VISION_CLASSIFICATION_MAX_TOKENS", "20")
         ),
         extraction_max_tokens=int(
-            os.getenv("TAX_INVOICE_NER_EXTRACTION_MAX_TOKENS", "1024")
+            os.getenv("LLAMA_VISION_EXTRACTION_MAX_TOKENS", "1024")
         ),
         memory_cleanup_enabled=os.getenv(
-            "TAX_INVOICE_NER_MEMORY_CLEANUP_ENABLED", "true"
+            "LLAMA_VISION_MEMORY_CLEANUP_ENABLED", "true"
         ).lower()
         == "true",
-        process_batch_size=int(os.getenv("TAX_INVOICE_NER_PROCESS_BATCH_SIZE", "1")),
-        memory_cleanup_delay=int(
-            os.getenv("TAX_INVOICE_NER_MEMORY_CLEANUP_DELAY", "1")
-        ),
+        process_batch_size=int(os.getenv("LLAMA_VISION_PROCESS_BATCH_SIZE", "1")),
+        memory_cleanup_delay=int(os.getenv("LLAMA_VISION_MEMORY_CLEANUP_DELAY", "1")),
+        # Parallel processing settings
+        image_loader_workers=int(os.getenv("LLAMA_VISION_IMAGE_LOADER_WORKERS", "4")),
+        max_concurrent_images=int(os.getenv("LLAMA_VISION_MAX_CONCURRENT_IMAGES", "8")),
+        enable_parallel_loading=os.getenv(
+            "LLAMA_VISION_ENABLE_PARALLEL_LOADING", "true"
+        ).lower()
+        == "true",
         # Australian compliance settings
         enable_abn_validation=os.getenv(
-            "TAX_INVOICE_NER_ENABLE_ABN_VALIDATION", "true"
+            "LLAMA_VISION_ENABLE_ABN_VALIDATION", "true"
         ).lower()
         == "true",
         enable_gst_validation=os.getenv(
-            "TAX_INVOICE_NER_ENABLE_GST_VALIDATION", "true"
+            "LLAMA_VISION_ENABLE_GST_VALIDATION", "true"
         ).lower()
         == "true",
-        default_currency=os.getenv("TAX_INVOICE_NER_DEFAULT_CURRENCY", "AUD"),
-        date_format=os.getenv("TAX_INVOICE_NER_DATE_FORMAT", "DD/MM/YYYY"),
+        default_currency=os.getenv("LLAMA_VISION_DEFAULT_CURRENCY", "AUD"),
+        date_format=os.getenv("LLAMA_VISION_DATE_FORMAT", "DD/MM/YYYY"),
         # Environment settings
-        environment=os.getenv("TAX_INVOICE_NER_ENVIRONMENT", "local"),
-        log_level=os.getenv("TAX_INVOICE_NER_LOG_LEVEL", "INFO"),
-        enable_metrics=os.getenv("TAX_INVOICE_NER_ENABLE_METRICS", "true").lower()
+        environment=os.getenv("LLAMA_VISION_ENVIRONMENT", "local"),
+        log_level=os.getenv("LLAMA_VISION_LOG_LEVEL", "INFO"),
+        enable_metrics=os.getenv("LLAMA_VISION_ENABLE_METRICS", "true").lower()
         == "true",
     )
 
