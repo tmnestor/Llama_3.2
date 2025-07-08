@@ -34,6 +34,10 @@ datasets/*/test/
 !datasets/*/metadata.json
 !datasets/*/metadata.csv
 
+# Allow synthetic bank statements for remote analysis
+!datasets/synthetic_bank_statements/
+!datasets/synthetic_bank_statements/*.png
+
 # Model outputs and results
 results/
 evaluation_results/
