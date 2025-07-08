@@ -168,9 +168,9 @@ class BankStatementHandler(DocumentTypeHandler):
         # First try the standard KEY-VALUE approach
         result = super().extract_fields(response)
 
-        # If we found less than 5 meaningful fields, use fallback pattern matching
-        # (accounts for metadata fields like currency, country, _extraction_method)
-        if result.field_count < 5:
+        # If we found less than 8 meaningful fields, use fallback pattern matching
+        # We expect 11 required fields, so <8 indicates KEY-VALUE parsing failed
+        if result.field_count < 8:
             self.logger.debug(
                 f"KEY-VALUE parsing found only {result.field_count} fields, trying fallback pattern matching..."
             )
