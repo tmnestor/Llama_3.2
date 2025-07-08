@@ -27,6 +27,7 @@ dependencies:
     - bitsandbytes  # Required for 8-bit quantization on V100 16GB
     - sentencepiece  # Required for tokenizer
     - protobuf  # Required for model loading
+    - python-dotenv  # Required for .env file loading
 
 # =====================================================
 # ENVIRONMENT SETUP INSTRUCTIONS

@@ -5,6 +5,19 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
+# Load .env file if it exists
+try:
+    from dotenv import load_dotenv
+    # Look for .env file in the project root
+    env_path = Path(__file__).parent.parent.parent / ".env"
+    if env_path.exists():
+        load_dotenv(env_path)
+        print(f"✅ Loaded environment from: {env_path}")
+    else:
+        print(f"⚠️  No .env file found at: {env_path}")
+except ImportError:
+    print("⚠️  python-dotenv not available, using system environment variables only")
+
 
 @dataclass
 class LlamaConfig:
