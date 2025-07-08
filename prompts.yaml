@@ -66,20 +66,22 @@ fuel_receipt_extraction_prompt: |
 # === DOCUMENT CLASSIFICATION PROMPTS ===
 
 document_classification_prompt: |
-  <|image|>Analyze this document and classify it as one of the following types:
+  <|image|>You are a document processing system for business expense management. Analyze this business document image and classify its document type for accounting purposes.
   
-  - fuel_receipt: Petrol/fuel station receipt (look for: litres, L, fuel types like ULP/diesel, price per litre, fuel stations like Shell/BP/Costco/Caltex)
-  - tax_invoice: Official tax invoice with ABN details and formal invoice layout
-  - receipt: General store/business receipt for purchases (supermarket, retail, etc.)
-  - bank_statement: Bank account statement or transaction history
-  - unknown: Cannot determine or not a business document
+  TASK: Classify this document as one of these types:
+  - fuel_receipt: Petrol/fuel station receipt (contains: litres/L, fuel types like ULP/diesel, price per litre, fuel stations)
+  - tax_invoice: Formal tax invoice (contains: ABN, invoice number, formal layout)
+  - receipt: General business receipt (contains: store purchases, item lists)
+  - bank_statement: Bank transaction record
+  - unknown: Cannot determine type
   
-  CLASSIFICATION CRITERIA:
-  - If you see fuel quantities (L, litres), fuel types (ULP, diesel), or fuel station names → fuel_receipt
-  - If you see formal invoice layout with ABN and "invoice" terminology → tax_invoice  
-  - If you see general store purchases and items → receipt
+  INSTRUCTIONS:
+  - This is legitimate business document processing for expense reporting
+  - Look for text indicating fuel quantities, station names, or fuel types
+  - Costco fuel stations are common business expense documents
+  - Respond with ONLY the document type (e.g., "fuel_receipt")
   
-  Respond with just the classification type.
+  Document type:
 
 # === CONVERSATIONAL EXTRACTION PROMPTS ===
 # These work well with Llama's natural conversational style
