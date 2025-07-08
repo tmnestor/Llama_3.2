@@ -195,9 +195,9 @@ class FuelReceiptHandler(DocumentTypeHandler):
             return result
 
     def _extract_from_raw_text(self, response: str) -> Dict[str, Any]:
-        """Extract fields from raw OCR text when KEY-VALUE format fails.
+        """Extract fields from raw OCR text using AWK-style processing.
 
-        This implements the same fallback mechanism that makes TaxAuthorityParser successful.
+        Much more maintainable than complex regex patterns.
 
         Args:
             response: Raw model response text
@@ -205,167 +205,13 @@ class FuelReceiptHandler(DocumentTypeHandler):
         Returns:
             Extracted fields dictionary
         """
-        extracted = {}
+        # Use AWK-style extractor for cleaner, more maintainable extraction
+        from .awk_extractor import FuelReceiptAwkExtractor
 
-        # Extract date patterns
-        date_patterns = [
-            r"(\d{2}/\d{2}/\d{4})",  # DD/MM/YYYY
-            r"(\d{1,2}/\d{1,2}/\d{4})",  # D/M/YYYY or DD/M/YYYY
-            r"(\d{4}-\d{2}-\d{2})",  # YYYY-MM-DD
-        ]
-
-        for pattern in date_patterns:
-            match = re.search(pattern, response)
-            if match:
-                extracted["DATE"] = match.group(1)
-                break
-
-        # Extract store/business name - look for common fuel retailers
-        store_patterns = [
-            r"(COSTCO\s+WHOLESALE\s+AUSTRALIA)",
-            r"(COSTCO)",
-            r"(SHELL)",
-            r"(BP)",
-            r"(COLES\s+EXPRESS)",
-            r"(7-ELEVEN)",
-            r"(WOOLWORTHS\s+PETROL)",
-            r"(AMPOL)",
-            r"(MOBIL)",
-            r"(UNITED\s+PETROLEUM)",
-        ]
-
-        for pattern in store_patterns:
-            match = re.search(pattern, response, re.IGNORECASE)
-            if match:
-                extracted["STORE"] = match.group(1).upper()
-                break
-
-        # Extract ABN
-        abn_patterns = [
-            r"ABN:?\s*(\d{2}\s?\d{3}\s?\d{3}\s?\d{3})",
-            r"(\d{2}\s\d{3}\s\d{3}\s\d{3})",  # Standard ABN format
-        ]
-
-        for pattern in abn_patterns:
-            match = re.search(pattern, response, re.IGNORECASE)
-            if match:
-                extracted["ABN"] = match.group(1)
-                break
-
-        # Extract fuel quantity
-        quantity_patterns = [
-            r"(\d+\.\d{3})L",  # Costco: 32.230L
-            r"(\d+\.\d{2})L",  # Shell/BP: 45.67L
-            r"(\d+\.\d{1})L",  # Some retailers: 32.2L
-        ]
-
-        for pattern in quantity_patterns:
-            match = re.search(pattern, response, re.IGNORECASE)
-            if match:
-                extracted["QUANTITIES"] = f"{match.group(1)}L"
-                break
-
-        # Extract price per litre
-        price_patterns = [
-            r"\$(\d+\.\d{3})/L",  # $1.827/L
-            r"(\d{3})/L",  # 827/L (cents)
-            r"\$(\d+\.\d{2})/L",  # $1.85/L
-        ]
-
-        for i, pattern in enumerate(price_patterns):
-            match = re.search(pattern, response, re.IGNORECASE)
-            if match:
-                if i == 1:  # Cents format
-                    price_dollars = float(match.group(1)) / 100
-                    extracted["PRICES"] = f"${price_dollars:.3f}/L"
-                else:
-                    extracted["PRICES"] = f"${match.group(1)}/L"
-                break
-
-        # Extract fuel type
-        fuel_type_patterns = [
-            r"(13ULP)",  # Costco
-            r"(U91|ULP|UNLEADED)",  # Standard unleaded
-            r"(U95|PREMIUM\s*ULP)",  # Premium unleaded
-            r"(U98|SUPER\s*PREMIUM)",  # Super premium
-            r"(DIESEL|DSL)",  # Diesel
-            r"(E10)",  # Ethanol blend
-        ]
-
-        for pattern in fuel_type_patterns:
-            match = re.search(pattern, response, re.IGNORECASE)
-            if match:
-                extracted["PRODUCTS"] = match.group(1).upper()
-                break
-
-        # Extract total amount
-        total_patterns = [
-            r"TOTAL[^\d]*\$(\d+\.\d{2})",
-            r"\$(\d+\.\d{2})\s*TOTAL",
-            r"AMOUNT[^\d]*\$(\d+\.\d{2})",
-        ]
-
-        for pattern in total_patterns:
-            match = re.search(pattern, response, re.IGNORECASE)
-            if match:
-                extracted["TOTAL"] = f"${match.group(1)}"
-                break
-
-        # Extract GST/Tax amount
-        tax_patterns = [
-            r"GST[^\d]*\$(\d+\.\d{2})",
-            r"Tax[^\d]*\$(\d+\.\d{2})",
-            r"\$(\d+\.\d{2})\s*GST",
-            r"\$(\d+\.\d{2})\s*Tax",
-        ]
-
-        for pattern in tax_patterns:
-            match = re.search(pattern, response, re.IGNORECASE)
-            if match:
-                extracted["TAX"] = f"${match.group(1)}"
-                break
-
-        # Extract payment method
-        payment_patterns = [
-            r"(CREDIT|DEBIT|EFTPOS|CASH)",
-            r"CARD[^\w]*(\w+)",
-            r"VISA|MASTERCARD|AMEX",
-        ]
-
-        for pattern in payment_patterns:
-            match = re.search(pattern, response, re.IGNORECASE)
-            if match:
-                extracted["PAYMENT_METHOD"] = match.group(0).upper()
-                break
-
-        # Extract receipt/transaction number
-        receipt_patterns = [
-            r"Receipt[^\d]*(\d+)",
-            r"Transaction[^\d]*(\d+)",
-            r"Auth[^\d]*(\d+)",
-            r"(\d{6,})",  # Generic long number
-        ]
-
-        for pattern in receipt_patterns:
-            match = re.search(pattern, response, re.IGNORECASE)
-            if match:
-                extracted["RECEIPT"] = match.group(1)
-                break
-
-        # Extract member/loyalty number
-        member_patterns = [
-            r"Member[^\d]*(\d+)",
-            r"Card[^\d]*(\d+)",
-            r"Account[^\d]*(\d+)",
-        ]
-
-        for pattern in member_patterns:
-            match = re.search(pattern, response, re.IGNORECASE)
-            if match:
-                extracted["PAYER"] = match.group(1)
-                break
+        awk_extractor = FuelReceiptAwkExtractor(self.log_level)
+        extracted = awk_extractor.extract_fuel_fields(response)
 
         self.logger.debug(
-            f"Fallback extraction found {len(extracted)} fields: {list(extracted.keys())}"
+            f"AWK fallback extraction found {len(extracted)} fields: {list(extracted.keys())}"
         )
         return extracted
