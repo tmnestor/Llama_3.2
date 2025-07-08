@@ -279,7 +279,9 @@ def smart_extract(
                     document_type,
                     classification_result.get("classification_response", ""),
                 )
-                selected_prompt_name = f"{document_type}_optimized"
+                # Get the actual prompt name from document type mapping
+                type_mapping = prompt_manager.metadata.get("document_type_mapping", {})
+                selected_prompt_name = type_mapping.get(document_type, f"{document_type}_prompt")
             except KeyError:
                 console.print(
                     f"[yellow]Warning: No specific prompt for '{document_type}', using fallback[/yellow]"
