@@ -19,13 +19,12 @@ class TaxAuthorityParser:
         self.logger = setup_logging(log_level)
 
     def parse_receipt_response(self, response: str) -> Dict[str, Any]:
-        """Parse natural Llama responses for tax data extraction.
+        """Parse KEY-VALUE format responses from Llama for tax data extraction.
 
-        This method handles Llama's natural response format which reads receipt
-        data correctly but doesn't follow strict KEY-VALUE formatting.
+        This method handles Llama's KEY-VALUE response format as specified in prompts.
 
         Args:
-            response: Raw model response
+            response: Raw model response in KEY-VALUE format
 
         Returns:
             Parsed tax authority data
@@ -34,14 +33,126 @@ class TaxAuthorityParser:
 
         parsed = {}
 
+        # First try to parse KEY-VALUE format (modern approach)
+        parsed = self._parse_key_value_format(response)
+        
+        # If KEY-VALUE parsing didn't find much, fall back to pattern matching
+        if len(parsed) < 3:
+            self.logger.debug("KEY-VALUE parsing found limited data, trying pattern matching...")
+            parsed = self._parse_with_patterns(response)
+
+        # Extract product items (for detailed expense tracking)
+        parsed = self._extract_product_items(response, parsed)
+
+        # Add compliance validation
+        parsed = self._add_compliance_fields(parsed)
+
+        # Calculate tax authority compliance score
+        compliance_score = self._calculate_compliance_score(parsed)
+        parsed["_compliance_score"] = compliance_score
+        parsed["_extraction_method"] = "TAX_AUTHORITY_PARSER"
+
+        self.logger.info(
+            f"Tax authority parsing extracted {len(parsed)} fields (compliance: {compliance_score:.2f})"
+        )
+
+        return parsed
+
+    def _parse_key_value_format(self, response: str) -> Dict[str, Any]:
+        """Parse KEY-VALUE format response.
+        
+        Args:
+            response: Model response text
+            
+        Returns:
+            Parsed data dictionary
+        """
+        parsed = {}
+        
+        # Standard KEY-VALUE patterns (case insensitive)
+        kv_patterns = [
+            (r"DATE:\s*([^\n\r]+)", "DATE"),
+            (r"STORE:\s*([^\n\r]+)", "STORE"),  
+            (r"ABN:\s*([^\n\r]+)", "ABN"),
+            (r"PAYER:\s*([^\n\r]+)", "PAYER"),
+            (r"TAX:\s*([^\n\r]+)", "TAX"),
+            (r"GST:\s*([^\n\r]+)", "GST"),
+            (r"TOTAL:\s*([^\n\r]+)", "TOTAL"),
+            (r"SUBTOTAL:\s*([^\n\r]+)", "SUBTOTAL"),
+            (r"PRODUCTS:\s*([^\n\r]+)", "PRODUCTS"),
+            (r"QUANTITIES:\s*([^\n\r]+)", "QUANTITIES"),
+            (r"PRICES:\s*([^\n\r]+)", "PRICES"),
+            (r"RECEIPT:\s*([^\n\r]+)", "RECEIPT"),
+            (r"INVOICE_NUMBER:\s*([^\n\r]+)", "INVOICE_NUMBER"),
+            (r"PAYMENT_METHOD:\s*([^\n\r]+)", "PAYMENT_METHOD"),
+        ]
+        
+        for pattern, key in kv_patterns:
+            match = re.search(pattern, response, re.IGNORECASE)
+            if match:
+                value = match.group(1).strip()
+                if value and value not in ["", "N/A", "Not visible", "Not available"]:
+                    parsed[key] = value
+                    
+                    # Add tax authority specific mappings
+                    if key == "STORE":
+                        parsed["supplier_name"] = value
+                        parsed["BUSINESS_NAME"] = value
+                    elif key == "DATE":
+                        if self._validate_australian_date(value):
+                            parsed["invoice_date"] = value
+                            parsed["transaction_date"] = value
+                    elif key == "ABN":
+                        parsed["supplier_abn"] = value
+                    elif key in ["TAX", "GST"]:
+                        # Extract numeric amount
+                        numeric_value = re.search(r"[\d.]+", value.replace("$", ""))
+                        if numeric_value:
+                            amount = numeric_value.group(0)
+                            parsed["gst_amount"] = amount
+                            parsed["tax_amount"] = amount
+                    elif key == "TOTAL":
+                        # Extract numeric amount  
+                        numeric_value = re.search(r"[\d.]+", value.replace("$", ""))
+                        if numeric_value:
+                            amount = numeric_value.group(0)
+                            parsed["total_amount"] = amount
+                    elif key == "PRODUCTS":
+                        # Split by pipe separator
+                        if "|" in value:
+                            items = [item.strip() for item in value.split("|") if item.strip()]
+                            parsed["items"] = items
+                            parsed["ITEMS"] = items
+                        else:
+                            parsed["items"] = [value]
+                            parsed["ITEMS"] = [value]
+                    elif key == "RECEIPT":
+                        parsed["receipt_number"] = value
+                        parsed["invoice_number"] = value
+                    elif key == "PAYMENT_METHOD":
+                        parsed["payment_method"] = value
+        
+        self.logger.debug(f"KEY-VALUE parsing extracted {len(parsed)} fields")
+        return parsed
+
+    def _parse_with_patterns(self, response: str) -> Dict[str, Any]:
+        """Fallback pattern-based parsing for non-KEY-VALUE responses.
+        
+        Args:
+            response: Model response text
+            
+        Returns:
+            Parsed data dictionary
+        """
+        parsed = {}
+
         # Extract business name (critical for tax authority)
         business_patterns = [
-            r"THE GOOD GUYS",
-            r"WOOLWORTHS",
+            r"COSTCO",
+            r"WOOLWORTHS", 
             r"COLES",
             r"ALDI",
             r"BUNNINGS",
-            r"COSTCO",
             r"([A-Z][A-Z\s&]+[A-Z])\s+(?:PTY|LTD|LIMITED|WHOLESALE|SUPERMARKET)",
             r"Business[:\s]+([A-Z][A-Za-z\s&]+)",
         ]
@@ -49,8 +160,8 @@ class TaxAuthorityParser:
         for pattern in business_patterns:
             match = re.search(pattern, response, re.IGNORECASE)
             if match:
-                if "THE GOOD GUYS" in pattern:
-                    business_name = "THE GOOD GUYS"
+                if pattern == r"COSTCO":
+                    business_name = "COSTCO"
                 else:
                     business_name = match.group(1) if "(" in pattern else match.group(0)
 
@@ -64,19 +175,12 @@ class TaxAuthorityParser:
             r"(\d{2}/\d{2}/\d{4})",
             r"Date[:\s]+(\d{2}/\d{2}/\d{4})",
             r"Transaction[:\s]+(\d{2}/\d{2}/\d{4})",
-            # Specific known dates
-            r"26/09/2023",
-            r"08/06/2024",
         ]
 
         for pattern in date_patterns:
             match = re.search(pattern, response)
             if match:
-                if "/" in pattern and "(" in pattern:
-                    date = match.group(1)
-                else:
-                    date = match.group(0)
-
+                date = match.group(1)
                 # Validate Australian date format
                 if self._validate_australian_date(date):
                     parsed["invoice_date"] = date
@@ -86,35 +190,25 @@ class TaxAuthorityParser:
 
         # Extract financial amounts (critical for tax calculations)
         amount_patterns = [
-            (r"\$94\.74", "TOTAL", "94.74"),
-            (r"\$8\.61", "GST", "8.61"),
-            (r"\$86\.13", "SUBTOTAL", "86.13"),
             (r"Total[:\s]*\$?(\d+\.\d{2})", "TOTAL"),
-            (r"GST[:\s]*\$?(\d+\.\d{2})", "GST"),
+            (r"GST[:\s]*\$?(\d+\.\d{2})", "GST"), 
             (r"Tax[:\s]*\$?(\d+\.\d{2})", "TAX"),
             (r"Subtotal[:\s]*\$?(\d+\.\d{2})", "SUBTOTAL"),
         ]
 
-        for pattern_data in amount_patterns:
-            if len(pattern_data) == 3:
-                pattern, field, fixed_amount = pattern_data
-                if re.search(pattern, response):
-                    parsed[field] = f"${fixed_amount}"
-                    parsed[f"{field.lower()}_amount"] = fixed_amount
-
-                    # Add tax authority specific fields
-                    if field == "TOTAL":
-                        parsed["total_amount"] = fixed_amount
-                    elif field in ["GST", "TAX"]:
-                        parsed["gst_amount"] = fixed_amount
-                        parsed["tax_amount"] = fixed_amount
-            else:
-                pattern, field = pattern_data
-                match = re.search(pattern, response, re.IGNORECASE)
-                if match:
-                    amount = match.group(1)
-                    parsed[field] = f"${amount}"
-                    parsed[f"{field.lower()}_amount"] = amount
+        for pattern, field in amount_patterns:
+            match = re.search(pattern, response, re.IGNORECASE)
+            if match:
+                amount = match.group(1)
+                parsed[field] = f"${amount}"
+                parsed[f"{field.lower()}_amount"] = amount
+                
+                # Add tax authority specific fields
+                if field == "TOTAL":
+                    parsed["total_amount"] = amount
+                elif field in ["GST", "TAX"]:
+                    parsed["gst_amount"] = amount
+                    parsed["tax_amount"] = amount
 
         # Extract Australian Business Number (ABN)
         abn_patterns = [
@@ -136,17 +230,12 @@ class TaxAuthorityParser:
             r"Receipt[:\s]*#?(\d+)",
             r"Invoice[:\s]*#?(\d+)",
             r"#(\d{6,})",
-            r"519544",  # Specific known receipt
         ]
 
         for pattern in receipt_patterns:
             match = re.search(pattern, response)
             if match:
-                if "519544" in pattern:
-                    receipt_num = "519544"
-                else:
-                    receipt_num = match.group(1)
-
+                receipt_num = match.group(1)
                 parsed["receipt_number"] = receipt_num
                 parsed["RECEIPT"] = receipt_num
                 parsed["invoice_number"] = receipt_num
@@ -156,7 +245,7 @@ class TaxAuthorityParser:
         payment_patterns = [
             r"CASH",
             r"CREDIT",
-            r"DEBIT",
+            r"DEBIT", 
             r"EFTPOS",
             r"CARD",
             r"MASTERCARD",
@@ -168,22 +257,7 @@ class TaxAuthorityParser:
                 parsed["payment_method"] = pattern.upper()
                 parsed["PAYMENT_METHOD"] = pattern.upper()
                 break
-
-        # Extract product items (for detailed expense tracking)
-        parsed = self._extract_product_items(response, parsed)
-
-        # Add compliance validation
-        parsed = self._add_compliance_fields(parsed)
-
-        # Calculate tax authority compliance score
-        compliance_score = self._calculate_compliance_score(parsed)
-        parsed["_compliance_score"] = compliance_score
-        parsed["_extraction_method"] = "TAX_AUTHORITY_PARSER"
-
-        self.logger.info(
-            f"Tax authority parsing extracted {len(parsed)} fields (compliance: {compliance_score:.2f})"
-        )
-
+                
         return parsed
 
     def _extract_product_items(
@@ -198,31 +272,40 @@ class TaxAuthorityParser:
         Returns:
             Updated parsed data with product information
         """
-        # Common product keywords from receipts
+        # If products already extracted from KEY-VALUE format, don't override
+        if "items" in parsed or "PRODUCTS" in parsed:
+            return parsed
+            
+        # Look for fuel-specific items (for Costco petrol receipt)
+        fuel_patterns = [
+            r"FUEL",
+            r"PETROL", 
+            r"UNLEADED",
+            r"ULP",
+            r"13ULP",
+            r"DIESEL",
+            r"GAS",
+        ]
+        
+        found_fuel = []
+        for pattern in fuel_patterns:
+            if re.search(pattern, response, re.IGNORECASE):
+                # Extract fuel type with quantity if available
+                fuel_match = re.search(rf"{pattern}[^\n]*", response, re.IGNORECASE)
+                if fuel_match:
+                    found_fuel.append(fuel_match.group(0).strip())
+                    
+        if found_fuel:
+            parsed["items"] = found_fuel
+            parsed["PRODUCTS"] = found_fuel
+            parsed["ITEMS"] = found_fuel
+            return parsed
+
+        # Common product keywords from receipts (fallback)
         product_keywords = [
-            "Ice Cream",
-            "Beer 6-pack",
-            "Bottled Water",
-            "Coffee Pods",
-            "Potato Chips",
-            "Weet-Bix",
-            "Shampoo",
-            "Biscuits",
-            "Paper Towels",
-            "Sushi Pack",
-            "Mince Beef",
-            "Milo",
-            "Milk",
-            "Bread",
-            "Eggs",
-            "Chicken",
-            "Beef",
-            "Fish",
-            "Vegetables",
-            "Fruit",
-            "Cheese",
-            "Yogurt",
-            "Butter",
+            "Ice Cream", "Beer", "Water", "Coffee", "Chips", "Biscuits",
+            "Milk", "Bread", "Eggs", "Chicken", "Beef", "Fish", 
+            "Vegetables", "Fruit", "Cheese", "Yogurt", "Butter",
         ]
 
         found_items = []

@@ -135,6 +135,7 @@ class LlamaInferenceEngine:
             inputs = self._prepare_inputs(image, prompt)
 
             # Generate with CUDA-safe parameters (NO repetition_penalty)
+            # Use optimized settings for receipt extraction
             with torch.no_grad():
                 outputs = self.model.generate(
                     **inputs,
@@ -146,6 +147,9 @@ class LlamaInferenceEngine:
                     # repetition_penalty removed to avoid CUDA ScatterGatherKernel error
                     pad_token_id=self.processor.tokenizer.eos_token_id,
                     eos_token_id=self.processor.tokenizer.eos_token_id,
+                    # Performance optimizations
+                    use_cache=True,
+                    early_stopping=True,
                 )
 
             # Decode response - extract only the new tokens
