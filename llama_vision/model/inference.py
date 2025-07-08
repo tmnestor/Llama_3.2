@@ -233,10 +233,17 @@ class LlamaInferenceEngine:
         Returns:
             Classification result dictionary
         """
-        classification_prompt = """<|image|>Analyze this document and classify it as one of:
-- receipt: Store/business receipt for purchases
-- tax_invoice: Official tax invoice with ABN details
-- fuel_receipt: Petrol/fuel station receipt
+        # Use the improved classification prompt from prompts.yaml
+        try:
+            from ..config import PromptManager
+            prompt_manager = PromptManager()
+            classification_prompt = prompt_manager.get_prompt("document_classification_prompt")
+        except Exception:
+            # Fallback to embedded prompt if PromptManager fails
+            classification_prompt = """<|image|>Analyze this document and classify it as one of:
+- fuel_receipt: Petrol/fuel station receipt (look for: litres, L, fuel types like ULP/diesel, price per litre)
+- tax_invoice: Official tax invoice with ABN details and formal invoice layout
+- receipt: General store/business receipt for purchases (supermarket, retail, etc.)
 - bank_statement: Bank account statement or transaction history
 - unknown: Cannot determine or not a business document
 
@@ -246,22 +253,31 @@ Respond with just the classification type."""
             response = self.predict(image_path, classification_prompt)
             response_lower = response.lower()
 
-            # Parse classification response
-            if "receipt" in response_lower and "fuel" not in response_lower:
-                doc_type = "receipt"
-                confidence = 0.85
-            elif "fuel" in response_lower and "receipt" in response_lower:
+            # Parse classification response with improved fuel detection
+            if "fuel_receipt" in response_lower or "fuel receipt" in response_lower:
                 doc_type = "fuel_receipt"
-                confidence = 0.80
+                confidence = 0.90
+            elif "fuel" in response_lower or "petrol" in response_lower:
+                doc_type = "fuel_receipt" 
+                confidence = 0.85
+            elif "tax_invoice" in response_lower or "tax invoice" in response_lower:
+                doc_type = "tax_invoice"
+                confidence = 0.85
             elif "tax" in response_lower and "invoice" in response_lower:
                 doc_type = "tax_invoice"
                 confidence = 0.80
-            elif "invoice" in response_lower:
-                doc_type = "invoice"
-                confidence = 0.75
+            elif "bank_statement" in response_lower or "bank statement" in response_lower:
+                doc_type = "bank_statement"
+                confidence = 0.85
             elif "bank" in response_lower:
                 doc_type = "bank_statement"
                 confidence = 0.75
+            elif "receipt" in response_lower:
+                doc_type = "receipt"
+                confidence = 0.75
+            elif "invoice" in response_lower:
+                doc_type = "tax_invoice"  # Default invoices to tax_invoice
+                confidence = 0.70
             else:
                 doc_type = "unknown"
                 confidence = 0.50
