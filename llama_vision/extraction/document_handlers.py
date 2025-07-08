@@ -156,10 +156,10 @@ class DocumentTypeHandler(ABC):
         """
         # Debug logging for bank statements
         if self.document_type == "bank_statement":
-            self.logger.info("=== BANK STATEMENT RAW RESPONSE (first 500 chars) ===")
-            self.logger.info(f"{response[:500]}...")
+            self.logger.info("=== BANK STATEMENT RAW RESPONSE (first 800 chars) ===")
+            self.logger.info(f"{response[:800]}...")
             self.logger.info("=== END RAW RESPONSE ===")
-
+        
         extracted = {}
         patterns = self.get_field_patterns()
 
