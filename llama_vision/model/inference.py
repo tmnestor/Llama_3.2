@@ -255,9 +255,26 @@ Output document type only."""
             response_lower = response.lower()
 
             # Parse classification response with improved fuel detection
+            # First check OCR content for fuel indicators (override classification if needed)
+            response_text = response.lower()
+            
+            # Look for fuel indicators in the actual OCR text
+            fuel_indicators = ['13ulp', 'ulp', 'unleaded', 'diesel', 'litre', ' l ', '.l ', 'price/l', 'per litre', 'fuel']
+            has_fuel_content = any(indicator in response_text for indicator in fuel_indicators)
+            
+            # Look for quantity patterns that indicate fuel
+            import re
+            fuel_quantity_pattern = r'\d+\.\d{2,3}\s*l\b|\d+\s*litre'
+            has_fuel_quantity = bool(re.search(fuel_quantity_pattern, response_text))
+            
             if "fuel_receipt" in response_lower or "fuel receipt" in response_lower:
                 doc_type = "fuel_receipt"
                 confidence = 0.90
+            elif has_fuel_content or has_fuel_quantity:
+                # Override other classifications if we see clear fuel indicators
+                doc_type = "fuel_receipt"
+                confidence = 0.95
+                self.logger.info(f"Overriding classification to fuel_receipt based on content indicators")
             elif "fuel" in response_lower or "petrol" in response_lower:
                 doc_type = "fuel_receipt" 
                 confidence = 0.85
