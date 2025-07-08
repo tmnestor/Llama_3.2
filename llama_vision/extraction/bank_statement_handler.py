@@ -168,8 +168,10 @@ class BankStatementHandler(DocumentTypeHandler):
         # First try the standard KEY-VALUE approach
         result = super().extract_fields(response)
         
-        # If we found less than 3 fields, use fallback pattern matching
-        if result.field_count < 3:
+        self.logger.info(f"KEY-VALUE extraction found {result.field_count} fields: {list(result.fields.keys())}")
+        
+        # If we found less than 7 fields (most of our 11 required fields), use fallback pattern matching
+        if result.field_count < 7:
             self.logger.debug(
                 f"KEY-VALUE parsing found only {result.field_count} fields, trying fallback pattern matching..."
             )
@@ -242,8 +244,9 @@ class BankStatementHandler(DocumentTypeHandler):
                 extracted["BSB"] = match.group(1)
                 break
         
-        # Extract account holder name - look for patterns
+        # Extract account holder name - look for patterns like "Account Jennifer Liu"
         name_patterns = [
+            r"Account\s+([A-Z][a-z]+\s+[A-Z][a-z]+)\s+BSB",
             r"Account\s+([A-Z][a-z]+\s+[A-Z][a-z]+)",
             r"Account Holder[:\s]*([A-Z][a-zA-Z\s]+)",
             r"Name[:\s]*([A-Z][a-zA-Z\s]+)",
