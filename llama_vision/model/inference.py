@@ -198,7 +198,6 @@ class LlamaInferenceEngine:
                     eos_token_id=self.processor.tokenizer.eos_token_id,
                     # Performance optimizations
                     use_cache=True,
-                    early_stopping=True,
                 )
 
             # Decode response - extract only the new tokens

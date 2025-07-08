@@ -397,9 +397,9 @@ class TaxAuthorityParser:
             self._extract_costco_fuel_fields(response, parsed)
 
         if found_fuel:
-            parsed["items"] = found_fuel
-            parsed["PRODUCTS"] = found_fuel
-            parsed["ITEMS"] = found_fuel
+            # Only add normalized field, avoid duplicates
+            if "items" not in parsed:
+                parsed["items"] = found_fuel
             return parsed
 
         # Common product keywords from receipts (fallback)
@@ -428,59 +428,54 @@ class TaxAuthorityParser:
             if item.lower() in response.lower():
                 found_items.append(item)
 
-        if found_items:
+        if found_items and "items" not in parsed:
+            # Only add normalized field, avoid duplicates
             parsed["items"] = found_items
-            parsed["PRODUCTS"] = found_items
-            parsed["ITEMS"] = found_items
 
         return parsed
 
     def _extract_costco_fuel_fields(
         self, response: str, parsed: Dict[str, Any]
     ) -> None:
-        """Extract specific fields from Costco fuel receipts.
+        """Extract specific fields from Costco fuel receipts without creating duplicates.
 
         Args:
             response: Model response text
             parsed: Current parsed data to update
         """
-        # Extract total amount from $100.00 pattern
+        # Extract total amount from $100.00 pattern (only if not already normalized)
         total_match = re.search(r"\$(\d+\.\d{2})", response)
         if total_match and "total_amount" not in parsed:
             amount = total_match.group(1)
-            parsed["total_amount"] = amount
-            parsed["TOTAL"] = f"${amount}"
+            parsed["total_amount"] = float(amount)
+            # Don't add TOTAL if we already normalized
 
-        # Extract fuel quantity (32.230L pattern)
+        # Extract fuel quantity (32.230L pattern) - this is unique to fuel, so always add
         quantity_match = re.search(r"(\d+\.\d{3})L", response)
-        if quantity_match:
+        if quantity_match and "fuel_quantity" not in parsed:
             quantity = quantity_match.group(1)
             parsed["fuel_quantity"] = f"{quantity}L"
-            parsed["QUANTITY"] = f"{quantity}L"
 
-        # Extract price per litre (827/L pattern)
+        # Extract price per litre (827/L pattern) - this is unique to fuel, so always add
         price_per_l_match = re.search(r"(\d+)/L", response)
-        if price_per_l_match:
+        if price_per_l_match and "price_per_litre" not in parsed:
             price_cents = price_per_l_match.group(1)
             price_dollars = float(price_cents) / 100
             parsed["price_per_litre"] = f"${price_dollars:.2f}/L"
-            parsed["PRICE_PER_LITRE"] = f"${price_dollars:.2f}/L"
 
         # Extract member number
         member_match = re.search(r"Member #(\d+)", response)
-        if member_match and "PAYER" not in parsed:
+        if member_match and "member_number" not in parsed:
             member_num = member_match.group(1)
             parsed["member_number"] = member_num
-            parsed["PAYER"] = f"Member #{member_num}"
 
-        # Calculate GST for fuel (10% of total)
+        # Calculate GST for fuel (10% of total) - only if not already calculated
         if "total_amount" in parsed and "gst_amount" not in parsed:
             try:
                 total = float(parsed["total_amount"])
                 gst = total * 0.1 / 1.1  # GST component of inclusive amount
-                parsed["gst_amount"] = f"{gst:.2f}"
-                parsed["GST"] = f"${gst:.2f}"
-                parsed["TAX"] = f"${gst:.2f}"
+                parsed["gst_amount"] = round(gst, 2)
+                # Don't add GST/TAX duplicate fields if already normalized
             except (ValueError, KeyError):
                 pass
 
