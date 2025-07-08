@@ -278,22 +278,24 @@ class TaxAuthorityParser:
             
         # Look for fuel-specific items (for Costco petrol receipt)
         fuel_patterns = [
-            r"FUEL",
-            r"PETROL", 
-            r"UNLEADED",
-            r"ULP",
-            r"13ULP",
-            r"DIESEL",
-            r"GAS",
+            r"13ULP\s+[\d.]+L",  # Specific pattern for Costco
+            r"ULP\s+[\d.]+L",
+            r"FUEL\s+[\d.]+L", 
+            r"PETROL\s+[\d.]+L",
+            r"UNLEADED\s+[\d.]+L",
+            r"DIESEL\s+[\d.]+L",
         ]
         
         found_fuel = []
         for pattern in fuel_patterns:
-            if re.search(pattern, response, re.IGNORECASE):
-                # Extract fuel type with quantity if available
-                fuel_match = re.search(rf"{pattern}[^\n]*", response, re.IGNORECASE)
-                if fuel_match:
-                    found_fuel.append(fuel_match.group(0).strip())
+            matches = re.findall(pattern, response, re.IGNORECASE)
+            for match in matches:
+                found_fuel.append(match.strip())
+                
+        # Also check for key financial fields that might be missing
+        if "13ULP" in response:
+            # Extract specific values from Costco fuel receipt
+            self._extract_costco_fuel_fields(response, parsed)
                     
         if found_fuel:
             parsed["items"] = found_fuel
@@ -319,6 +321,53 @@ class TaxAuthorityParser:
             parsed["ITEMS"] = found_items
 
         return parsed
+
+    def _extract_costco_fuel_fields(self, response: str, parsed: Dict[str, Any]) -> None:
+        """Extract specific fields from Costco fuel receipts.
+        
+        Args:
+            response: Model response text
+            parsed: Current parsed data to update
+        """
+        # Extract total amount from $100.00 pattern
+        total_match = re.search(r'\$(\d+\.\d{2})', response)
+        if total_match and "total_amount" not in parsed:
+            amount = total_match.group(1)
+            parsed["total_amount"] = amount
+            parsed["TOTAL"] = f"${amount}"
+            
+        # Extract fuel quantity (32.230L pattern)
+        quantity_match = re.search(r'(\d+\.\d{3})L', response)
+        if quantity_match:
+            quantity = quantity_match.group(1)
+            parsed["fuel_quantity"] = f"{quantity}L"
+            parsed["QUANTITY"] = f"{quantity}L"
+            
+        # Extract price per litre (827/L pattern)
+        price_per_l_match = re.search(r'(\d+)/L', response)
+        if price_per_l_match:
+            price_cents = price_per_l_match.group(1)
+            price_dollars = float(price_cents) / 100
+            parsed["price_per_litre"] = f"${price_dollars:.2f}/L"
+            parsed["PRICE_PER_LITRE"] = f"${price_dollars:.2f}/L"
+            
+        # Extract member number
+        member_match = re.search(r'Member #(\d+)', response)
+        if member_match and "PAYER" not in parsed:
+            member_num = member_match.group(1)
+            parsed["member_number"] = member_num
+            parsed["PAYER"] = f"Member #{member_num}"
+            
+        # Calculate GST for fuel (10% of total)
+        if "total_amount" in parsed and "gst_amount" not in parsed:
+            try:
+                total = float(parsed["total_amount"])
+                gst = total * 0.1 / 1.1  # GST component of inclusive amount
+                parsed["gst_amount"] = f"{gst:.2f}"
+                parsed["GST"] = f"${gst:.2f}"
+                parsed["TAX"] = f"${gst:.2f}"
+            except (ValueError, KeyError):
+                pass
 
     def _add_compliance_fields(self, parsed: Dict[str, Any]) -> Dict[str, Any]:
         """Add Australian tax compliance specific fields.

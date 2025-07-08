@@ -115,6 +115,47 @@ class LlamaInferenceEngine:
 
         return inputs
 
+    def _clean_response(self, response: str) -> str:
+        """Clean response from repetitive text and artifacts.
+        
+        Args:
+            response: Raw model response
+            
+        Returns:
+            Cleaned response text
+        """
+        # Remove excessive repetition of "au" (common artifact)
+        import re
+        
+        # Remove repetitive "au au au..." patterns
+        response = re.sub(r'\b(?:au\s+){5,}', '', response, flags=re.IGNORECASE)
+        
+        # Remove excessive repetition of any short word (2-3 chars) repeated 5+ times
+        response = re.sub(r'\b(\w{2,3})\s+(?:\1\s+){4,}', '', response, flags=re.IGNORECASE)
+        
+        # Stop at common receipt endings
+        stop_patterns = [
+            r'Thank you.*$',
+            r'Visit.*costco\.au.*$',
+            r'Member #\d+.*$',
+            r'\d{2}/\d{2}/\d{4}.*Thank.*$',
+        ]
+        
+        for pattern in stop_patterns:
+            match = re.search(pattern, response, re.IGNORECASE | re.DOTALL)
+            if match:
+                response = response[:match.start()].strip()
+                break
+                
+        # Clean up excessive whitespace
+        response = re.sub(r'\s+', ' ', response)
+        
+        # Limit response length to reasonable size for receipts
+        if len(response) > 1000:
+            response = response[:1000] + "..."
+            
+        return response.strip()
+
     def predict(self, image_path: str, prompt: str) -> str:
         """Generate prediction with CUDA-safe parameters.
 
@@ -156,6 +197,9 @@ class LlamaInferenceEngine:
             response = self.processor.decode(
                 outputs[0][inputs["input_ids"].shape[-1] :], skip_special_tokens=True
             )
+
+            # Clean response from repetitive text and common artifacts
+            response = self._clean_response(response)
 
             inference_time = time.time() - start_time
             self.logger.info(f"Inference completed in {inference_time:.2f}s")
