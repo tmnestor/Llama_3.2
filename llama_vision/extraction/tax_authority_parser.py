@@ -375,14 +375,21 @@ class TaxAuthorityParser:
         if "items" in parsed or "PRODUCTS" in parsed:
             return parsed
 
-        # Look for fuel-specific items (for Costco petrol receipt)
+        # Look for fuel-specific items (generic patterns for all Australian retailers)
         fuel_patterns = [
-            r"13ULP\s+[\d.]+L",  # Specific pattern for Costco
-            r"ULP\s+[\d.]+L",
-            r"FUEL\s+[\d.]+L",
-            r"PETROL\s+[\d.]+L",
-            r"UNLEADED\s+[\d.]+L",
-            r"DIESEL\s+[\d.]+L",
+            r"13ULP\s+[\d.]+L",  # Costco specific
+            r"U91\s+[\d.]+L",  # Shell/BP Unleaded 91
+            r"U95\s+[\d.]+L",  # Shell/BP Premium 95
+            r"U98\s+[\d.]+L",  # Shell/BP Super Premium 98
+            r"ULP\s+[\d.]+L",  # Generic unleaded
+            r"UNLEADED\s+[\d.]+L",  # Generic unleaded
+            r"PREMIUM\s+ULP\s+[\d.]+L",  # Premium unleaded
+            r"E10\s+[\d.]+L",  # Ethanol blend
+            r"DIESEL\s+[\d.]+L",  # Diesel
+            r"DSL\s+[\d.]+L",  # Diesel abbreviation
+            r"FUEL\s+[\d.]+L",  # Generic fuel
+            r"PETROL\s+[\d.]+L",  # Generic petrol
+            r"LPG\s+[\d.]+L",  # LPG
         ]
 
         found_fuel = []
@@ -391,10 +398,15 @@ class TaxAuthorityParser:
             for match in matches:
                 found_fuel.append(match.strip())
 
-        # Also check for key financial fields that might be missing
-        if "13ULP" in response:
-            # Extract specific values from Costco fuel receipt
-            self._extract_costco_fuel_fields(response, parsed)
+        # Use dedicated fuel parser for fuel receipts
+        fuel_parser = self._get_fuel_parser()
+        if fuel_parser._is_fuel_receipt(response):
+            parsed = fuel_parser.extract_fuel_fields(response, parsed)
+
+            # Also extract fuel items for the items field
+            fuel_items = fuel_parser.extract_fuel_items(response)
+            if fuel_items and "items" not in parsed:
+                parsed["items"] = fuel_items
 
         if found_fuel:
             # Only add normalized field, avoid duplicates
@@ -434,40 +446,130 @@ class TaxAuthorityParser:
 
         return parsed
 
-    def _extract_costco_fuel_fields(
+    def _get_fuel_parser(self):
+        """Get fuel receipt parser instance.
+
+        Returns:
+            FuelReceiptParser instance
+        """
+        if not hasattr(self, "_fuel_parser"):
+            from .fuel_receipt_parser import FuelReceiptParser
+
+            self._fuel_parser = FuelReceiptParser(self.log_level)
+        return self._fuel_parser
+
+    def _extract_generic_fuel_fields(
         self, response: str, parsed: Dict[str, Any]
     ) -> None:
-        """Extract specific fields from Costco fuel receipts without creating duplicates.
+        """Extract fuel-specific fields from any Australian fuel retailer without creating duplicates.
+
+        Works for: Costco, Shell, BP, Coles Express, Woolworths, 7-Eleven, etc.
 
         Args:
             response: Model response text
             parsed: Current parsed data to update
         """
-        # Extract total amount from $100.00 pattern (only if not already normalized)
-        total_match = re.search(r"\$(\d+\.\d{2})", response)
-        if total_match and "total_amount" not in parsed:
-            amount = total_match.group(1)
-            parsed["total_amount"] = float(amount)
-            # Don't add TOTAL if we already normalized
+        # Extract fuel quantity - multiple patterns for different retailers
+        quantity_patterns = [
+            r"(\d+\.\d{3})L",  # Costco: 32.230L
+            r"(\d+\.\d{2})L",  # Shell/BP: 45.67L
+            r"(\d+\.\d{1})L",  # Some retailers: 32.2L
+            r"(\d+)\.(\d+)\s*L",  # Spaced: 32.230 L
+            r"LITRES?:\s*(\d+\.\d+)",  # "Litres: 32.230"
+            r"QTY:\s*(\d+\.\d+)L",  # "Qty: 32.230L"
+        ]
 
-        # Extract fuel quantity (32.230L pattern) - this is unique to fuel, so always add
-        quantity_match = re.search(r"(\d+\.\d{3})L", response)
-        if quantity_match and "fuel_quantity" not in parsed:
-            quantity = quantity_match.group(1)
-            parsed["fuel_quantity"] = f"{quantity}L"
+        for pattern in quantity_patterns:
+            quantity_match = re.search(pattern, response, re.IGNORECASE)
+            if quantity_match and "fuel_quantity" not in parsed:
+                if "." in pattern and len(quantity_match.groups()) == 1:
+                    quantity = quantity_match.group(1)
+                else:
+                    quantity = f"{quantity_match.group(1)}.{quantity_match.group(2)}"
+                parsed["fuel_quantity"] = f"{quantity}L"
+                break
 
-        # Extract price per litre (827/L pattern) - this is unique to fuel, so always add
-        price_per_l_match = re.search(r"(\d+)/L", response)
-        if price_per_l_match and "price_per_litre" not in parsed:
-            price_cents = price_per_l_match.group(1)
-            price_dollars = float(price_cents) / 100
-            parsed["price_per_litre"] = f"${price_dollars:.2f}/L"
+        # Extract price per litre - multiple formats for different retailers
+        price_patterns = [
+            r"(\d{3})/L",  # Costco: 827/L (cents)
+            r"\$(\d+\.\d{2})/L",  # Shell: $1.85/L
+            r"(\d+\.\d{3})\s*¢/L",  # BP: 184.5¢/L
+            r"PRICE/L:\s*\$?(\d+\.\d{2})",  # "Price/L: $1.84"
+            r"PER\s*LITRE:\s*\$?(\d+\.\d{2})",  # "Per Litre: $1.84"
+            r"UNIT\s*PRICE:\s*\$?(\d+\.\d{2})",  # "Unit Price: $1.84"
+        ]
 
-        # Extract member number
-        member_match = re.search(r"Member #(\d+)", response)
-        if member_match and "member_number" not in parsed:
-            member_num = member_match.group(1)
-            parsed["member_number"] = member_num
+        for i, pattern in enumerate(price_patterns):
+            price_match = re.search(pattern, response, re.IGNORECASE)
+            if price_match and "price_per_litre" not in parsed:
+                price_value = price_match.group(1)
+                if i == 0:  # Costco cents format
+                    price_dollars = float(price_value) / 100
+                    parsed["price_per_litre"] = f"${price_dollars:.2f}/L"
+                elif i == 2:  # BP cents format
+                    price_dollars = float(price_value) / 100
+                    parsed["price_per_litre"] = f"${price_dollars:.2f}/L"
+                else:  # Already in dollars
+                    parsed["price_per_litre"] = f"${price_value}/L"
+                break
+
+        # Extract fuel type - common Australian fuel types
+        fuel_type_patterns = [
+            r"(13ULP)",  # Costco
+            r"(U91|ULP|UNLEADED)",  # Standard unleaded
+            r"(U95|PREMIUM\s*ULP)",  # Premium unleaded
+            r"(U98|SUPER\s*PREMIUM)",  # Super premium
+            r"(DIESEL|DSL)",  # Diesel
+            r"(E10)",  # Ethanol blend
+            r"(LPG)",  # LPG
+        ]
+
+        for pattern in fuel_type_patterns:
+            fuel_match = re.search(pattern, response, re.IGNORECASE)
+            if fuel_match and "fuel_type" not in parsed:
+                parsed["fuel_type"] = fuel_match.group(1).upper()
+                break
+
+        # Extract member/loyalty numbers - works for different programs
+        member_patterns = [
+            r"Member\s*#?:?\s*(\d+)",  # Costco: "Member #1234"
+            r"FlyBuys\s*#?:?\s*(\d+)",  # Coles: "FlyBuys: 1234"
+            r"Everyday\s*Rewards\s*#?:?\s*(\d+)",  # Woolworths: "Everyday Rewards: 1234"
+            r"Shell\s*Card\s*#?:?\s*(\d+)",  # Shell: "Shell Card: 1234"
+            r"Card\s*#?:?\s*(\d+)",  # Generic: "Card: 1234"
+            r"Loyalty\s*#?:?\s*(\d+)",  # Generic: "Loyalty: 1234"
+        ]
+
+        for pattern in member_patterns:
+            member_match = re.search(pattern, response, re.IGNORECASE)
+            if member_match and "member_number" not in parsed:
+                parsed["member_number"] = member_match.group(1)
+                break
+
+        # Calculate fuel volume and costs if we have the data
+        if (
+            "fuel_quantity" in parsed
+            and "price_per_litre" in parsed
+            and "total_amount" not in parsed
+        ):
+            try:
+                # Extract numeric values
+                quantity_str = parsed["fuel_quantity"].replace("L", "")
+                price_str = parsed["price_per_litre"].replace("$", "").replace("/L", "")
+
+                quantity = float(quantity_str)
+                price_per_litre = float(price_str)
+
+                # Calculate total (quantity × price per litre)
+                calculated_total = quantity * price_per_litre
+                parsed["calculated_total"] = round(calculated_total, 2)
+
+                # If we don't have total_amount yet, use calculated
+                if "total_amount" not in parsed:
+                    parsed["total_amount"] = calculated_total
+
+            except (ValueError, KeyError):
+                pass
 
         # Calculate GST for fuel (10% of total) - only if not already calculated
         if "total_amount" in parsed and "gst_amount" not in parsed:
@@ -475,7 +577,6 @@ class TaxAuthorityParser:
                 total = float(parsed["total_amount"])
                 gst = total * 0.1 / 1.1  # GST component of inclusive amount
                 parsed["gst_amount"] = round(gst, 2)
-                # Don't add GST/TAX duplicate fields if already normalized
             except (ValueError, KeyError):
                 pass
 
