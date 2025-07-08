@@ -240,15 +240,15 @@ class LlamaInferenceEngine:
             classification_prompt = prompt_manager.get_prompt("document_classification_prompt")
         except Exception:
             # Fallback to embedded prompt if PromptManager fails
-            classification_prompt = """<|image|>You are a document processing system. Classify this business document for expense reporting:
+            classification_prompt = """<|image|>Analyze document structure and format. Classify based on layout patterns:
 
-- fuel_receipt: Fuel station receipt (contains litres, fuel types, price per litre)
-- tax_invoice: Formal invoice (contains ABN, invoice number)
-- receipt: General business receipt
-- bank_statement: Bank transaction record
-- unknown: Cannot determine
+- fuel_receipt: Contains fuel quantities (L, litres), price per unit
+- tax_invoice: Formal invoice layout, tax calculations
+- receipt: Product lists, subtotals, retail format
+- bank_statement: Account numbers, transaction records
+- unknown: Cannot determine format
 
-This is legitimate business document processing. Respond with just the document type."""
+Output document type only."""
 
         try:
             response = self.predict(image_path, classification_prompt)

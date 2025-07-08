@@ -66,22 +66,21 @@ fuel_receipt_extraction_prompt: |
 # === DOCUMENT CLASSIFICATION PROMPTS ===
 
 document_classification_prompt: |
-  <|image|>You are a document processing system for business expense management. Analyze this business document image and classify its document type for accounting purposes.
+  <|image|>Analyze the document structure and format. Classify the document type based on visible layout patterns and text elements.
   
-  TASK: Classify this document as one of these types:
-  - fuel_receipt: Petrol/fuel station receipt (contains: litres/L, fuel types like ULP/diesel, price per litre, fuel stations)
-  - tax_invoice: Formal tax invoice (contains: ABN, invoice number, formal layout)
-  - receipt: General business receipt (contains: store purchases, item lists)
-  - bank_statement: Bank transaction record
-  - unknown: Cannot determine type
+  Document format types:
+  - fuel_receipt: Contains fuel quantity measurements (L, litres), price per unit, fuel product codes
+  - tax_invoice: Contains formal invoice formatting, line items, tax calculations 
+  - receipt: Contains product lists, quantities, prices in retail format
+  - bank_statement: Contains account numbers, transaction dates, balances
+  - unknown: Cannot determine format type
   
-  INSTRUCTIONS:
-  - This is legitimate business document processing for expense reporting
-  - Look for text indicating fuel quantities, station names, or fuel types
-  - Costco fuel stations are common business expense documents
-  - Respond with ONLY the document type (e.g., "fuel_receipt")
+  Look for these structural indicators:
+  - Fuel documents: Quantity units (L), price per litre, fuel type codes
+  - Invoice documents: Formal headers, invoice numbers, tax line items
+  - Receipt documents: Product lists, subtotals, payment methods
   
-  Document type:
+  Output only the document type:
 
 # === CONVERSATIONAL EXTRACTION PROMPTS ===
 # These work well with Llama's natural conversational style
