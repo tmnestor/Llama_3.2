@@ -51,17 +51,22 @@ fuel_receipt_extraction_prompt: |
   Provide the following in KEY: VALUE format:
   
   DATE: [purchase date]
-  STATION: [fuel station name]
+  STORE: [fuel station name]
   TOTAL: [total amount paid]
-  LITRES: [fuel quantity in litres]
-  PRICE_PER_LITRE: [fuel price per litre]
   TAX: [GST amount]
   ABN: [station ABN if visible]
+  PRODUCTS: [fuel type and quantity - e.g., 13ULP 32.230L]
+  QUANTITIES: [fuel quantity in litres]
+  PRICES: [price per litre]
+  PAYMENT_METHOD: [payment method used]
+  RECEIPT: [receipt/transaction number]
   
-  SPECIFIC REQUIREMENTS:
+  FUEL-SPECIFIC REQUIREMENTS:
   - Extract fuel quantity and price per litre for vehicle logs
+  - Include fuel type (ULP, Diesel, etc.) in PRODUCTS field
   - Include station location if visible
   - GST component for tax purposes
+  - Member number if available
 
 # === DOCUMENT CLASSIFICATION PROMPTS ===
 
