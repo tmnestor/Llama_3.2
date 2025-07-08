@@ -189,10 +189,10 @@ class PromptManager:
             The prompt text for that document type
         """
         try:
-            from ..extraction.modern_adapter import get_modern_adapter
+            from ..extraction.extraction_engine import DocumentExtractionEngine
 
-            adapter = get_modern_adapter()
-            prompt = adapter.get_prompt_for_document_type_modern(
+            engine = DocumentExtractionEngine()
+            prompt = engine.get_prompt_for_document_type(
                 document_type, classification_response
             )
 

@@ -435,15 +435,24 @@ Output document type only."""
             Classification result dictionary
         """
         try:
-            from ..extraction.modern_adapter import get_modern_adapter
+            from ..extraction.extraction_engine import DocumentExtractionEngine
 
             # Get OCR text first using the model
             classification_prompt = """<|image|>Read all visible text from this document for classification purposes."""
             ocr_response = self.predict(image_path, classification_prompt)
 
             # Use modern classification
-            adapter = get_modern_adapter()
-            return adapter.classify_document_modern(ocr_response)
+            engine = DocumentExtractionEngine()
+            classification_result = engine.classify_document(ocr_response)
+
+            # Convert to legacy format for compatibility
+            return {
+                "document_type": classification_result.document_type,
+                "confidence": classification_result.confidence,
+                "classification_response": classification_result.classification_response,
+                "is_business_document": classification_result.is_business_document,
+                "indicators_found": classification_result.indicators_found,
+            }
 
         except Exception as e:
             self.logger.error(f"Modern document classification failed: {e}")

@@ -158,10 +158,11 @@ def extract(
 
             # STEP 4: Parse extracted data using modern registry
             parse_task = progress.add_task("Parsing extracted data...", total=None)
-            from ..extraction.modern_adapter import get_modern_adapter
+            from ..extraction.extraction_engine import DocumentExtractionEngine
 
-            adapter = get_modern_adapter()
-            extracted_data = adapter.extract_fields_modern(document_type, response)
+            engine = DocumentExtractionEngine()
+            extraction_result = engine.extract_fields(document_type, response)
+            extracted_data = extraction_result.fields if extraction_result else {}
             progress.update(parse_task, description="✅ Data parsed")
 
         # Display results

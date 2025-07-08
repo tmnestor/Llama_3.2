@@ -497,18 +497,6 @@ class TaxAuthorityParser:
 
         return parsed
 
-    def _get_fuel_parser(self):
-        """Get fuel receipt parser instance.
-
-        Returns:
-            FuelReceiptParser instance
-        """
-        if not hasattr(self, "_fuel_parser"):
-            from .fuel_receipt_parser import FuelReceiptParser
-
-            self._fuel_parser = FuelReceiptParser(self.log_level)
-        return self._fuel_parser
-
     def _extract_generic_fuel_fields(
         self, response: str, parsed: Dict[str, Any]
     ) -> None:

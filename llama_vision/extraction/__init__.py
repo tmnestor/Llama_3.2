@@ -1,14 +1,14 @@
 """Extraction module for Llama-3.2-Vision package."""
 
-# Legacy extractors (backward compatibility)
-# Specific document handlers
+# Modern architecture (Registry + Strategy + Director pattern)
+# Document handlers
 from .bank_statement_handler import BankStatementHandler
-
-# Modern architecture (recommended)
 from .document_handlers import DocumentTypeHandler, DocumentTypeRegistry
 from .extraction_engine import DocumentExtractionEngine
 from .fuel_receipt_handler import FuelReceiptHandler
-from .fuel_receipt_parser import FuelReceiptParser
+
+# Legacy extractors (backward compatibility)
+from .json_extraction import JsonExtractor
 from .key_value_extraction import KeyValueExtractor
 from .receipt_handler import ReceiptHandler
 from .registry import get_initialized_registry, initialize_document_handlers
@@ -16,11 +16,7 @@ from .tax_authority_parser import TaxAuthorityParser
 from .tax_invoice_handler import TaxInvoiceHandler
 
 __all__ = [
-    # Legacy (backward compatibility)
-    "KeyValueExtractor",
-    "TaxAuthorityParser",
-    "FuelReceiptParser",
-    # Modern architecture
+    # Modern architecture (recommended)
     "DocumentTypeHandler",
     "DocumentTypeRegistry",
     "DocumentExtractionEngine",
@@ -31,4 +27,8 @@ __all__ = [
     "FuelReceiptHandler",
     "ReceiptHandler",
     "TaxInvoiceHandler",
+    # Legacy (backward compatibility)
+    "JsonExtractor",
+    "KeyValueExtractor",
+    "TaxAuthorityParser",
 ]
