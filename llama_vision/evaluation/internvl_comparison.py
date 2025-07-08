@@ -194,7 +194,7 @@ class InternVLComparison:
         # Use tax authority parser for most comprehensive extraction
         from ..extraction.tax_authority_parser import TaxAuthorityParser
 
-        parser = TaxAuthorityParser(self.logger.level)
+        parser = TaxAuthorityParser("INFO")
         return parser.parse_receipt_response(response)
 
     def calculate_compatibility_score(self, extracted_data: Dict[str, Any]) -> float:

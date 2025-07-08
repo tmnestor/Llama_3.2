@@ -11,30 +11,6 @@
 # === RECOMMENDED PRODUCTION PROMPTS (Key-Value Format) ===
 # These prompts provide superior robustness and parsing reliability
 
-key_value_receipt_prompt: |
-  <|image|>Extract information from this receipt for expense claim processing.
-  
-  CRITICAL: Use EXACT KEY-VALUE format below - NO JSON, NO other formats.
-  
-  DATE: [transaction date in DD/MM/YYYY format]
-  STORE: [business/store name]
-  TOTAL: [total amount with currency symbol]
-  TAX: [GST/tax amount]
-  ABN: [Australian Business Number if visible]
-  
-  EXAMPLE OUTPUT:
-  DATE: 15/06/2024
-  STORE: WOOLWORTHS SUPERMARKET
-  TOTAL: $42.08
-  TAX: $3.83
-  ABN: 88 000 014 675
-  
-  REQUIREMENTS:
-  - Only extract information clearly visible in the image
-  - Use Australian date format (DD/MM/YYYY)
-  - Include currency symbols for amounts
-  - Extract ABN in standard 11-digit format
-
 business_receipt_extraction_prompt: |
   <|image|>Extract key information from this business receipt for expense reporting.
   

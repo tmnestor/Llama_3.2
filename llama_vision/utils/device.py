@@ -103,10 +103,10 @@ def estimate_memory_requirements(
         "13B": {"fp16": 26.0, "int8": 13.0, "recommended": 32.0},
     }
 
-    # Extract size from model identifier
-    size_key = "11B"  # Default
-    for key in memory_estimates.keys():
-        if key.lower() in model_size.lower():
+    # Extract size from model identifier (check larger sizes first)
+    size_key = "11B"  # Default for Llama-3.2-Vision
+    for key in ["13B", "11B", "7B", "3B", "1B"]:  # Check larger sizes first
+        if key in model_size.upper():
             size_key = key
             break
 
