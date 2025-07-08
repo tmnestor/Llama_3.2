@@ -83,6 +83,46 @@ fuel_receipt_extraction_prompt: |
   
   Return ONLY the key-value pairs above. No explanations.
 
+bank_statement_extraction_prompt: |
+  <|image|>
+  Extract information from this Australian bank statement and return in KEY-VALUE format.
+  
+  Use this exact format:
+  ACCOUNT_NUMBER: [account number without BSB]
+  BSB: [Bank State Branch code - XXX-XXX format]
+  ACCOUNT_HOLDER: [account holder name in capitals]
+  STATEMENT_PERIOD: [statement period - from DD/MM/YYYY to DD/MM/YYYY]
+  OPENING_BALANCE: [opening balance amount]
+  CLOSING_BALANCE: [closing balance amount]
+  TOTAL_CREDITS: [total credit amount for period]
+  TOTAL_DEBITS: [total debit amount for period]
+  BANK_NAME: [financial institution name in capitals]
+  TRANSACTION_COUNT: [number of transactions shown]
+  STATEMENT_DATE: [statement date in DD/MM/YYYY format]
+  
+  Example for bank statement:
+  ACCOUNT_NUMBER: 123456789
+  BSB: 062-001
+  ACCOUNT_HOLDER: JOHN SMITH
+  STATEMENT_PERIOD: 01/06/2024 to 30/06/2024
+  OPENING_BALANCE: 2450.67
+  CLOSING_BALANCE: 1876.23
+  TOTAL_CREDITS: 3500.00
+  TOTAL_DEBITS: 4074.44
+  BANK_NAME: COMMONWEALTH BANK OF AUSTRALIA
+  TRANSACTION_COUNT: 15
+  STATEMENT_DATE: 02/07/2024
+  
+  FORMATTING REQUIREMENTS:
+  - Bank names: Use ALL CAPITALS (COMMONWEALTH BANK, WESTPAC, ANZ, NAB)
+  - Account holder: Use ALL CAPITALS
+  - Dates: DD/MM/YYYY format (Australian standard)
+  - BSB: XXX-XXX format with hyphen
+  - Amounts: Decimal format without currency symbol (2450.67)
+  - Extract ALL visible account information from the statement
+  
+  Return ONLY the key-value pairs above. No explanations.
+
 # === DOCUMENT CLASSIFICATION PROMPTS ===
 
 document_classification_prompt: |
@@ -99,6 +139,7 @@ document_classification_prompt: |
   - Fuel documents: Quantity units (L), price per litre, fuel type codes
   - Invoice documents: Formal headers, invoice numbers, tax line items
   - Receipt documents: Product lists, subtotals, payment methods
+  - Bank statements: Account numbers, BSB codes, opening/closing balances, transaction lists
   
   Output only the document type:
 
@@ -367,6 +408,7 @@ prompt_metadata:
     receipt: business_receipt_extraction_prompt
     tax_invoice: tax_invoice_extraction_prompt
     fuel_receipt: fuel_receipt_extraction_prompt
+    bank_statement: bank_statement_extraction_prompt
     unknown: generic_document_prompt
   
   testing_prompts:

@@ -284,6 +284,32 @@ Output document type only."""
             fuel_quantity_pattern = r"\d+\.\d{2,3}\s*l\b|\d+\s*litre"
             has_fuel_quantity = bool(re.search(fuel_quantity_pattern, response_text))
 
+            # Look for bank statement indicators in the actual OCR text
+            bank_indicators = [
+                "account",
+                "balance",
+                "transaction",
+                "deposit",
+                "withdrawal",
+                "bsb",
+                "opening balance",
+                "closing balance",
+                "statement period",
+                "account number",
+                "sort code",
+                "debit",
+                "credit",
+                "available balance",
+                "current balance"
+            ]
+            has_bank_content = any(
+                indicator in response_text for indicator in bank_indicators
+            )
+
+            # Look for account number patterns (Australian BSB + Account format)
+            bank_account_pattern = r"\d{3}-\d{3}\s+\d{4,10}|\bBSB\b|\baccount\s+number\b"
+            has_bank_account = bool(re.search(bank_account_pattern, response_text, re.IGNORECASE))
+
             if "fuel_receipt" in response_lower or "fuel receipt" in response_lower:
                 doc_type = "fuel_receipt"
                 confidence = 0.90
@@ -303,11 +329,16 @@ Output document type only."""
             elif "tax" in response_lower and "invoice" in response_lower:
                 doc_type = "tax_invoice"
                 confidence = 0.80
-            elif (
-                "bank_statement" in response_lower or "bank statement" in response_lower
-            ):
+            elif "bank_statement" in response_lower or "bank statement" in response_lower:
                 doc_type = "bank_statement"
-                confidence = 0.85
+                confidence = 0.90
+            elif has_bank_content or has_bank_account:
+                # Override other classifications if we see clear bank indicators
+                doc_type = "bank_statement"
+                confidence = 0.95
+                self.logger.info(
+                    "Overriding classification to bank_statement based on content indicators"
+                )
             elif "bank" in response_lower:
                 doc_type = "bank_statement"
                 confidence = 0.75
@@ -326,7 +357,7 @@ Output document type only."""
                 "confidence": confidence,
                 "classification_response": response,
                 "is_business_document": doc_type
-                in ["receipt", "tax_invoice", "fuel_receipt", "invoice"]
+                in ["receipt", "tax_invoice", "fuel_receipt", "bank_statement", "invoice"]
                 and confidence > 0.7,
             }
 
