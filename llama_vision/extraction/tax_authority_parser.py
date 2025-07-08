@@ -30,6 +30,7 @@ class TaxAuthorityParser:
         Returns:
             Parsed tax authority data
         """
+        self.logger.info(f"Raw model response: {response}")
         self.logger.debug(f"Parsing receipt response: {response[:100]}...")
 
         parsed = {}
