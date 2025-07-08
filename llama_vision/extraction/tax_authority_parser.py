@@ -95,6 +95,19 @@ class TaxAuthorityParser:
             (r"RECEIPT:\s*([^\n\r]+)", "RECEIPT"),
             (r"INVOICE_NUMBER:\s*([^\n\r]+)", "INVOICE_NUMBER"),
             (r"PAYMENT_METHOD:\s*([^\n\r]+)", "PAYMENT_METHOD"),
+            
+            # Bank statement specific patterns
+            (r"ACCOUNT_NUMBER:\s*([^\n\r]+)", "ACCOUNT_NUMBER"),
+            (r"BSB:\s*([^\n\r]+)", "BSB"),
+            (r"ACCOUNT_HOLDER:\s*([^\n\r]+)", "ACCOUNT_HOLDER"),
+            (r"STATEMENT_PERIOD:\s*([^\n\r]+)", "STATEMENT_PERIOD"),
+            (r"OPENING_BALANCE:\s*([^\n\r]+)", "OPENING_BALANCE"),
+            (r"CLOSING_BALANCE:\s*([^\n\r]+)", "CLOSING_BALANCE"),
+            (r"TOTAL_CREDITS:\s*([^\n\r]+)", "TOTAL_CREDITS"),
+            (r"TOTAL_DEBITS:\s*([^\n\r]+)", "TOTAL_DEBITS"),
+            (r"BANK_NAME:\s*([^\n\r]+)", "BANK_NAME"),
+            (r"TRANSACTION_COUNT:\s*([^\n\r]+)", "TRANSACTION_COUNT"),
+            (r"STATEMENT_DATE:\s*([^\n\r]+)", "STATEMENT_DATE"),
         ]
 
         for pattern, key in kv_patterns:
@@ -145,6 +158,28 @@ class TaxAuthorityParser:
                         parsed["invoice_number"] = value
                     elif key == "PAYMENT_METHOD":
                         parsed["payment_method"] = value
+                    
+                    # Bank statement specific mappings
+                    elif key == "BANK_NAME":
+                        parsed["supplier_name"] = value  # Map to standard field
+                        parsed["institution_name"] = value
+                    elif key == "ACCOUNT_HOLDER":
+                        parsed["account_holder_name"] = value
+                        parsed["customer_name"] = value
+                    elif key == "STATEMENT_DATE":
+                        if self._validate_australian_date(value):
+                            parsed["invoice_date"] = value  # Map to standard field
+                            parsed["transaction_date"] = value
+                            parsed["statement_date"] = value
+                    elif key in ["OPENING_BALANCE", "CLOSING_BALANCE", "TOTAL_CREDITS", "TOTAL_DEBITS"]:
+                        # Extract numeric amount
+                        numeric_value = re.search(r"[\d.]+", value.replace("$", ""))
+                        if numeric_value:
+                            amount = numeric_value.group(0)
+                            parsed[f"{key.lower()}"] = amount
+                            # Map closing balance to total_amount for compliance scoring
+                            if key == "CLOSING_BALANCE":
+                                parsed["total_amount"] = amount
 
         self.logger.debug(f"KEY-VALUE parsing extracted {len(parsed)} fields")
         return parsed
@@ -162,16 +197,27 @@ class TaxAuthorityParser:
 
         # Define field mappings (target_field: list_of_possible_sources)
         field_mappings = {
-            "supplier_name": ["STORE", "BUSINESS_NAME", "PAYER"],
-            "total_amount": ["TOTAL"],
+            "supplier_name": ["STORE", "BUSINESS_NAME", "PAYER", "BANK_NAME"],
+            "total_amount": ["TOTAL", "CLOSING_BALANCE"],
             "gst_amount": ["GST", "TAX"],
-            "invoice_date": ["DATE"],
+            "invoice_date": ["DATE", "STATEMENT_DATE"],
             "supplier_abn": ["ABN"],
             "items": ["PRODUCTS", "ITEMS"],
             "quantities": ["QUANTITIES"],
             "prices": ["PRICES"],
             "invoice_number": ["INVOICE_NUMBER", "RECEIPT"],
             "payment_method": ["PAYMENT_METHOD"],
+            
+            # Bank statement specific fields
+            "account_number": ["ACCOUNT_NUMBER"],
+            "bsb": ["BSB"],
+            "account_holder": ["ACCOUNT_HOLDER"],
+            "statement_period": ["STATEMENT_PERIOD"],
+            "opening_balance": ["OPENING_BALANCE"],
+            "closing_balance": ["CLOSING_BALANCE"],
+            "total_credits": ["TOTAL_CREDITS"],
+            "total_debits": ["TOTAL_DEBITS"],
+            "transaction_count": ["TRANSACTION_COUNT"],
         }
 
         # Apply field mappings and remove source duplicates
