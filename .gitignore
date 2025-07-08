@@ -66,10 +66,10 @@ Thumbs.db
 # Legacy and backup directories
 backups/
 scripts/legacy/archive/
+archive/
 
 # Other project directories
 latex/
-internvl_PoC/
 
 # Include Jupyter notebooks
 !*.ipynb
