@@ -412,3 +412,28 @@ Output document type only."""
 
         self.logger.info(f"Batch processing completed: {len(results)} results")
         return results
+
+    def classify_document_modern(self, image_path: str) -> dict[str, Any]:
+        """Classify document using modern registry architecture.
+        
+        Args:
+            image_path: Path to image file
+            
+        Returns:
+            Classification result dictionary
+        """
+        try:
+            from ..extraction.modern_adapter import get_modern_adapter
+            
+            # Get OCR text first using the model
+            classification_prompt = """<|image|>Read all visible text from this document for classification purposes."""
+            ocr_response = self.predict(image_path, classification_prompt)
+            
+            # Use modern classification
+            adapter = get_modern_adapter()
+            return adapter.classify_document_modern(ocr_response)
+            
+        except Exception as e:
+            self.logger.error(f"Modern document classification failed: {e}")
+            # Fallback to legacy classification
+            return self.classify_document(image_path)
