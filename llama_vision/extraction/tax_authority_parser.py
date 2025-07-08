@@ -42,6 +42,12 @@ class TaxAuthorityParser:
                 "KEY-VALUE parsing found limited data, trying pattern matching..."
             )
             parsed = self._parse_with_patterns(response)
+        else:
+            self.logger.debug(
+                f"KEY-VALUE parsing successful with {len(parsed)} fields, skipping pattern matching"
+            )
+            # Normalize KEY-VALUE fields to tax authority standards
+            parsed = self._normalize_key_value_fields(parsed)
 
         # Extract product items (for detailed expense tracking)
         parsed = self._extract_product_items(response, parsed)
@@ -140,6 +146,81 @@ class TaxAuthorityParser:
 
         self.logger.debug(f"KEY-VALUE parsing extracted {len(parsed)} fields")
         return parsed
+
+    def _normalize_key_value_fields(self, parsed: Dict[str, Any]) -> Dict[str, Any]:
+        """Normalize KEY-VALUE fields to tax authority standards without duplication.
+
+        Args:
+            parsed: Dictionary with KEY-VALUE extracted fields
+
+        Returns:
+            Normalized dictionary with standardized field names
+        """
+        normalized = {}
+
+        # Define field mappings (target_field: list_of_possible_sources)
+        field_mappings = {
+            "supplier_name": ["STORE", "BUSINESS_NAME", "PAYER"],
+            "total_amount": ["TOTAL"],
+            "gst_amount": ["GST", "TAX"],
+            "invoice_date": ["DATE"],
+            "supplier_abn": ["ABN"],
+            "items": ["PRODUCTS", "ITEMS"],
+            "quantities": ["QUANTITIES"],
+            "prices": ["PRICES"],
+            "invoice_number": ["INVOICE_NUMBER", "RECEIPT"],
+            "payment_method": ["PAYMENT_METHOD"],
+        }
+
+        # Apply field mappings (avoid duplicates)
+        for target_field, source_fields in field_mappings.items():
+            for source_field in source_fields:
+                if source_field in parsed and target_field not in normalized:
+                    value = parsed[source_field]
+                    # Clean currency symbols and formatting
+                    if target_field in ["total_amount", "gst_amount"] and isinstance(
+                        value, str
+                    ):
+                        # Extract numeric value from currency strings like "$1.82"
+                        import re
+
+                        amount_match = re.search(r"[\d.]+", value.replace("$", ""))
+                        if amount_match:
+                            normalized[target_field] = float(amount_match.group())
+                        else:
+                            normalized[target_field] = value
+                    else:
+                        normalized[target_field] = value
+                    break  # Use first match only
+
+        # Add essential fields for compliance calculation
+        if "supplier_name" in normalized:
+            normalized["taxpayer_name"] = normalized["supplier_name"]
+
+        # Add currency and country for Australian compliance
+        normalized["currency"] = "AUD"
+        normalized["country"] = "Australia"
+
+        # Calculate GST compliance if amounts available
+        if "total_amount" in normalized and "gst_amount" in normalized:
+            try:
+                total = float(normalized["total_amount"])
+                gst = float(normalized["gst_amount"])
+                if total > 0:
+                    gst_rate = (gst / total) * 100
+                    normalized["calculated_gst_rate"] = f"{gst_rate:.1f}%"
+                    # Australian GST is 10%
+                    normalized["gst_compliant"] = abs(gst_rate - 10.0) < 1.0
+            except (ValueError, ZeroDivisionError):
+                pass
+
+        # Add expense category
+        normalized["expense_category"] = "General Business Expenses"
+
+        self.logger.debug(
+            f"Normalized {len(parsed)} KEY-VALUE fields to {len(normalized)} tax authority fields"
+        )
+        return normalized
 
     def _parse_with_patterns(self, response: str) -> Dict[str, Any]:
         """Fallback pattern-based parsing for non-KEY-VALUE responses.
