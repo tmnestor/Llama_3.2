@@ -18,6 +18,9 @@
 !*.json
 !*.csv
 
+# Allow environment example files
+!.env.example
+
 # Ignore specific markdown files that contain local paths
 CLAUDE.md
 .claude/
