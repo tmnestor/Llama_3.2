@@ -222,7 +222,7 @@ def smart_extract(
     image_path: str = typer.Argument(..., help="Path to image file"),
     output_file: Optional[str] = typer.Option(None, help="Output file path (JSON)"),
     extraction_method: str = typer.Option(
-        "tax_authority", help="Extraction method: key_value, tax_authority, or json"
+        "modern", help="Extraction method: modern (registry), tax_authority (legacy), key_value, or json"
     ),
     verbose: bool = typer.Option(False, help="Enable verbose logging"),
     compare_internvl: bool = typer.Option(False, help="Run InternVL comparison test"),
@@ -306,7 +306,13 @@ def smart_extract(
 
             # STEP 4: Parse extracted data
             parse_task = progress.add_task("Parsing extracted data...", total=None)
-            if extraction_method == "key_value":
+            if extraction_method == "modern":
+                # Use modern registry-based extraction
+                from ..extraction.modern_adapter import get_modern_adapter
+                
+                adapter = get_modern_adapter()
+                extracted_data = adapter.extract_fields_modern(document_type, response)
+            elif extraction_method == "key_value":
                 extractor = KeyValueExtractor(log_level)
                 extracted_data = extractor.extract(response)
             elif extraction_method == "tax_authority":
@@ -331,7 +337,8 @@ def smart_extract(
             f"[dim]Document Type:[/dim] {document_type} (confidence: {confidence:.2f})"
         )
         console.print(f"[dim]Selected Prompt:[/dim] {selected_prompt_name}")
-        console.print(f"[dim]Extraction Method:[/dim] {extraction_method}")
+        extraction_display = "modern_registry" if extraction_method == "modern" else extraction_method
+        console.print(f"[dim]Extraction Method:[/dim] {extraction_display}")
         console.print(f"[dim]Time:[/dim] {inference_time:.2f} seconds")
         console.print(f"[dim]Fields Extracted:[/dim] {len(extracted_data)}")
 
