@@ -178,22 +178,22 @@ python verify_setup.py
 conda activate vision_env
 
 # Single image processing
-python -m llama_vision.cli.llama_single path/to/receipt.jpg
+python -m llama_vision.cli.llama_single extract path/to/receipt.jpg
 
 # Batch processing
-python -m llama_vision.cli.llama_batch path/to/images/ --output results.csv
+python -m llama_vision.cli.llama_batch extract path/to/images/ --output-file results.csv
 
 # With custom settings
-python -m llama_vision.cli.llama_single receipt.jpg \
-  --prompt factual_information_prompt \
-  --extraction tax_authority \
+python -m llama_vision.cli.llama_single extract receipt.jpg \
+  --prompt-name factual_information_prompt \
+  --extraction-method tax_authority \
   --verbose
 
 # Batch processing with multiple workers
-python -m llama_vision.cli.llama_batch images/ \
+python -m llama_vision.cli.llama_batch extract images/ \
   --max-workers 4 \
-  --output batch_results.csv \
-  --prompt key_value_receipt_prompt
+  --output-file batch_results.csv \
+  --prompt-name key_value_receipt_prompt
 ```
 
 ### Available Options

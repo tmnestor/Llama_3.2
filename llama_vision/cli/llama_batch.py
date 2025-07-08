@@ -107,10 +107,10 @@ def extract(
         start_time = time.time()
 
         with Progress(
-            TextColumn("[progress.description]"),
+            TextColumn("[progress.description]{task.description}"),
             BarColumn(),
-            TextColumn("[progress.percentage]%"),
-            TextColumn("({progress.completed}/{progress.total})"),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            TextColumn("({task.completed}/{task.total})"),
             TimeElapsedColumn(),
             console=console,
         ) as progress:
