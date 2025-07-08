@@ -9,11 +9,8 @@ into V100 16GB memory constraints.
 import sys
 from pathlib import Path
 
-<<<<<<< HEAD
-=======
 import torch
 
->>>>>>> 53cbe49 (✨ feat: Add comprehensive llama_vision package with CLI tools and document extraction capabilities)
 # Add package to path
 sys.path.append(str(Path(__file__).parent))
 

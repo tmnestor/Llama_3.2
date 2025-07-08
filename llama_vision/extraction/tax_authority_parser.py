@@ -35,10 +35,12 @@ class TaxAuthorityParser:
 
         # First try to parse KEY-VALUE format (modern approach)
         parsed = self._parse_key_value_format(response)
-        
+
         # If KEY-VALUE parsing didn't find much, fall back to pattern matching
         if len(parsed) < 3:
-            self.logger.debug("KEY-VALUE parsing found limited data, trying pattern matching...")
+            self.logger.debug(
+                "KEY-VALUE parsing found limited data, trying pattern matching..."
+            )
             parsed = self._parse_with_patterns(response)
 
         # Extract product items (for detailed expense tracking)
@@ -60,19 +62,19 @@ class TaxAuthorityParser:
 
     def _parse_key_value_format(self, response: str) -> Dict[str, Any]:
         """Parse KEY-VALUE format response.
-        
+
         Args:
             response: Model response text
-            
+
         Returns:
             Parsed data dictionary
         """
         parsed = {}
-        
+
         # Standard KEY-VALUE patterns (case insensitive)
         kv_patterns = [
             (r"DATE:\s*([^\n\r]+)", "DATE"),
-            (r"STORE:\s*([^\n\r]+)", "STORE"),  
+            (r"STORE:\s*([^\n\r]+)", "STORE"),
             (r"ABN:\s*([^\n\r]+)", "ABN"),
             (r"PAYER:\s*([^\n\r]+)", "PAYER"),
             (r"TAX:\s*([^\n\r]+)", "TAX"),
@@ -86,14 +88,14 @@ class TaxAuthorityParser:
             (r"INVOICE_NUMBER:\s*([^\n\r]+)", "INVOICE_NUMBER"),
             (r"PAYMENT_METHOD:\s*([^\n\r]+)", "PAYMENT_METHOD"),
         ]
-        
+
         for pattern, key in kv_patterns:
             match = re.search(pattern, response, re.IGNORECASE)
             if match:
                 value = match.group(1).strip()
                 if value and value not in ["", "N/A", "Not visible", "Not available"]:
                     parsed[key] = value
-                    
+
                     # Add tax authority specific mappings
                     if key == "STORE":
                         parsed["supplier_name"] = value
@@ -112,7 +114,7 @@ class TaxAuthorityParser:
                             parsed["gst_amount"] = amount
                             parsed["tax_amount"] = amount
                     elif key == "TOTAL":
-                        # Extract numeric amount  
+                        # Extract numeric amount
                         numeric_value = re.search(r"[\d.]+", value.replace("$", ""))
                         if numeric_value:
                             amount = numeric_value.group(0)
@@ -120,7 +122,11 @@ class TaxAuthorityParser:
                     elif key == "PRODUCTS":
                         # Split by pipe separator
                         if "|" in value:
-                            items = [item.strip() for item in value.split("|") if item.strip()]
+                            items = [
+                                item.strip()
+                                for item in value.split("|")
+                                if item.strip()
+                            ]
                             parsed["items"] = items
                             parsed["ITEMS"] = items
                         else:
@@ -131,16 +137,16 @@ class TaxAuthorityParser:
                         parsed["invoice_number"] = value
                     elif key == "PAYMENT_METHOD":
                         parsed["payment_method"] = value
-        
+
         self.logger.debug(f"KEY-VALUE parsing extracted {len(parsed)} fields")
         return parsed
 
     def _parse_with_patterns(self, response: str) -> Dict[str, Any]:
         """Fallback pattern-based parsing for non-KEY-VALUE responses.
-        
+
         Args:
             response: Model response text
-            
+
         Returns:
             Parsed data dictionary
         """
@@ -149,7 +155,7 @@ class TaxAuthorityParser:
         # Extract business name (critical for tax authority)
         business_patterns = [
             r"COSTCO",
-            r"WOOLWORTHS", 
+            r"WOOLWORTHS",
             r"COLES",
             r"ALDI",
             r"BUNNINGS",
@@ -191,7 +197,7 @@ class TaxAuthorityParser:
         # Extract financial amounts (critical for tax calculations)
         amount_patterns = [
             (r"Total[:\s]*\$?(\d+\.\d{2})", "TOTAL"),
-            (r"GST[:\s]*\$?(\d+\.\d{2})", "GST"), 
+            (r"GST[:\s]*\$?(\d+\.\d{2})", "GST"),
             (r"Tax[:\s]*\$?(\d+\.\d{2})", "TAX"),
             (r"Subtotal[:\s]*\$?(\d+\.\d{2})", "SUBTOTAL"),
         ]
@@ -202,7 +208,7 @@ class TaxAuthorityParser:
                 amount = match.group(1)
                 parsed[field] = f"${amount}"
                 parsed[f"{field.lower()}_amount"] = amount
-                
+
                 # Add tax authority specific fields
                 if field == "TOTAL":
                     parsed["total_amount"] = amount
@@ -245,7 +251,7 @@ class TaxAuthorityParser:
         payment_patterns = [
             r"CASH",
             r"CREDIT",
-            r"DEBIT", 
+            r"DEBIT",
             r"EFTPOS",
             r"CARD",
             r"MASTERCARD",
@@ -257,7 +263,7 @@ class TaxAuthorityParser:
                 parsed["payment_method"] = pattern.upper()
                 parsed["PAYMENT_METHOD"] = pattern.upper()
                 break
-                
+
         return parsed
 
     def _extract_product_items(
@@ -275,28 +281,28 @@ class TaxAuthorityParser:
         # If products already extracted from KEY-VALUE format, don't override
         if "items" in parsed or "PRODUCTS" in parsed:
             return parsed
-            
+
         # Look for fuel-specific items (for Costco petrol receipt)
         fuel_patterns = [
             r"13ULP\s+[\d.]+L",  # Specific pattern for Costco
             r"ULP\s+[\d.]+L",
-            r"FUEL\s+[\d.]+L", 
+            r"FUEL\s+[\d.]+L",
             r"PETROL\s+[\d.]+L",
             r"UNLEADED\s+[\d.]+L",
             r"DIESEL\s+[\d.]+L",
         ]
-        
+
         found_fuel = []
         for pattern in fuel_patterns:
             matches = re.findall(pattern, response, re.IGNORECASE)
             for match in matches:
                 found_fuel.append(match.strip())
-                
+
         # Also check for key financial fields that might be missing
         if "13ULP" in response:
             # Extract specific values from Costco fuel receipt
             self._extract_costco_fuel_fields(response, parsed)
-                    
+
         if found_fuel:
             parsed["items"] = found_fuel
             parsed["PRODUCTS"] = found_fuel
@@ -305,9 +311,23 @@ class TaxAuthorityParser:
 
         # Common product keywords from receipts (fallback)
         product_keywords = [
-            "Ice Cream", "Beer", "Water", "Coffee", "Chips", "Biscuits",
-            "Milk", "Bread", "Eggs", "Chicken", "Beef", "Fish", 
-            "Vegetables", "Fruit", "Cheese", "Yogurt", "Butter",
+            "Ice Cream",
+            "Beer",
+            "Water",
+            "Coffee",
+            "Chips",
+            "Biscuits",
+            "Milk",
+            "Bread",
+            "Eggs",
+            "Chicken",
+            "Beef",
+            "Fish",
+            "Vegetables",
+            "Fruit",
+            "Cheese",
+            "Yogurt",
+            "Butter",
         ]
 
         found_items = []
@@ -322,42 +342,44 @@ class TaxAuthorityParser:
 
         return parsed
 
-    def _extract_costco_fuel_fields(self, response: str, parsed: Dict[str, Any]) -> None:
+    def _extract_costco_fuel_fields(
+        self, response: str, parsed: Dict[str, Any]
+    ) -> None:
         """Extract specific fields from Costco fuel receipts.
-        
+
         Args:
             response: Model response text
             parsed: Current parsed data to update
         """
         # Extract total amount from $100.00 pattern
-        total_match = re.search(r'\$(\d+\.\d{2})', response)
+        total_match = re.search(r"\$(\d+\.\d{2})", response)
         if total_match and "total_amount" not in parsed:
             amount = total_match.group(1)
             parsed["total_amount"] = amount
             parsed["TOTAL"] = f"${amount}"
-            
+
         # Extract fuel quantity (32.230L pattern)
-        quantity_match = re.search(r'(\d+\.\d{3})L', response)
+        quantity_match = re.search(r"(\d+\.\d{3})L", response)
         if quantity_match:
             quantity = quantity_match.group(1)
             parsed["fuel_quantity"] = f"{quantity}L"
             parsed["QUANTITY"] = f"{quantity}L"
-            
+
         # Extract price per litre (827/L pattern)
-        price_per_l_match = re.search(r'(\d+)/L', response)
+        price_per_l_match = re.search(r"(\d+)/L", response)
         if price_per_l_match:
             price_cents = price_per_l_match.group(1)
             price_dollars = float(price_cents) / 100
             parsed["price_per_litre"] = f"${price_dollars:.2f}/L"
             parsed["PRICE_PER_LITRE"] = f"${price_dollars:.2f}/L"
-            
+
         # Extract member number
-        member_match = re.search(r'Member #(\d+)', response)
+        member_match = re.search(r"Member #(\d+)", response)
         if member_match and "PAYER" not in parsed:
             member_num = member_match.group(1)
             parsed["member_number"] = member_num
             parsed["PAYER"] = f"Member #{member_num}"
-            
+
         # Calculate GST for fuel (10% of total)
         if "total_amount" in parsed and "gst_amount" not in parsed:
             try:

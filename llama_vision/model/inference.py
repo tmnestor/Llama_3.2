@@ -117,47 +117,51 @@ class LlamaInferenceEngine:
 
     def _clean_response(self, response: str) -> str:
         """Clean response from repetitive text and artifacts.
-        
+
         Args:
             response: Raw model response
-            
+
         Returns:
             Cleaned response text
         """
         import re
-        
+
         # Remove excessive repetition of ANY word repeated 3+ times consecutively
         # This catches "au au au", "the the the", "hello hello hello", etc.
-        response = re.sub(r'\b(\w+)(\s+\1){2,}', r'\1', response, flags=re.IGNORECASE)
-        
+        response = re.sub(r"\b(\w+)(\s+\1){2,}", r"\1", response, flags=re.IGNORECASE)
+
         # Remove excessive repetition of longer phrases (up to 3 words) repeated 3+ times
         # This catches "Thank you Thank you Thank you" or "Visit costco Visit costco" etc.
-        response = re.sub(r'\b((?:\w+\s+){1,3})(?:\1){2,}', r'\1', response, flags=re.IGNORECASE)
-        
+        response = re.sub(
+            r"\b((?:\w+\s+){1,3})(?:\1){2,}", r"\1", response, flags=re.IGNORECASE
+        )
+
         # Remove excessive repetition of any short token/phrase (1-5 chars) repeated 5+ times
-        response = re.sub(r'\b(\w{1,5})\s+(?:\1\s+){4,}', '', response, flags=re.IGNORECASE)
-        
+        response = re.sub(
+            r"\b(\w{1,5})\s+(?:\1\s+){4,}", "", response, flags=re.IGNORECASE
+        )
+
         # Stop at common receipt endings
         stop_patterns = [
-            r'Thank you.*$',
-            r'Visit.*costco\.au.*$',
-            r'Member #\d+.*$',
-            r'\d{2}/\d{2}/\d{4}.*Thank.*$',
+            r"Thank you.*$",
+            r"Visit.*costco\.au.*$",
+            r"Member #\d+.*$",
+            r"\d{2}/\d{2}/\d{4}.*Thank.*$",
         ]
-        
+
         for pattern in stop_patterns:
             match = re.search(pattern, response, re.IGNORECASE | re.DOTALL)
             if match:
-                response = response[:match.start()].strip()
+                response = response[: match.start()].strip()
                 break
-                
+
         # Clean up excessive whitespace
-        response = re.sub(r'\s+', ' ', response)
-        
+        response = re.sub(r"\s+", " ", response)
+
         # Limit response length to reasonable size for receipts
         if len(response) > 1000:
             response = response[:1000] + "..."
-            
+
         return response.strip()
 
     def predict(self, image_path: str, prompt: str) -> str:

@@ -78,35 +78,23 @@ def check_package_import():
     print("\n📦 Checking llama_vision package...")
     try:
         from llama_vision.config import load_config
-<<<<<<< HEAD
 
-        print("   ✅ llama_vision.config")
-
-        from llama_vision.model import LlamaModelLoader
-
-        print("   ✅ llama_vision.model")
-
-        from llama_vision.extraction import TaxAuthorityParser
-
-        print("   ✅ llama_vision.extraction")
-
-        from llama_vision.cli import llama_single
-
-=======
         assert load_config is not None
         print("   ✅ llama_vision.config")
 
         from llama_vision.model import LlamaModelLoader
+
         assert LlamaModelLoader is not None
         print("   ✅ llama_vision.model")
 
         from llama_vision.extraction import TaxAuthorityParser
+
         assert TaxAuthorityParser is not None
         print("   ✅ llama_vision.extraction")
 
         from llama_vision.cli import llama_single
+
         assert llama_single is not None
->>>>>>> 53cbe49 (✨ feat: Add comprehensive llama_vision package with CLI tools and document extraction capabilities)
         print("   ✅ llama_vision.cli")
 
         return True
