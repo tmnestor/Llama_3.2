@@ -30,7 +30,7 @@ class KeyValueExtractor:
 
         extracted = {}
 
-        # Standard KEY-VALUE patterns
+        # Standard KEY-VALUE patterns (enhanced for Llama responses)
         kv_patterns = [
             (r"DATE:\s*([^\n\r]+)", "DATE"),
             (r"STORE:\s*([^\n\r]+)", "STORE"),
@@ -43,6 +43,15 @@ class KeyValueExtractor:
             (r"RECEIPT:\s*([^\n\r]+)", "RECEIPT"),
             (r"INVOICE_NUMBER:\s*([^\n\r]+)", "INVOICE_NUMBER"),
             (r"PAYMENT_METHOD:\s*([^\n\r]+)", "PAYMENT_METHOD"),
+            # Enhanced patterns for raw text extraction
+            (r"(?:TOTAL|Total)[\s:]*\$?(\d+\.?\d*)", "EXTRACTED_TOTAL"),
+            (r"(?:TAX|GST|tax)[\s:]*\$?(\d+\.?\d*)", "EXTRACTED_TAX"),
+            (r"(\d{2}/\d{2}/\d{4})", "EXTRACTED_DATE"),
+            (
+                r"(TARGET|WOOLWORTHS|COLES|BUNNINGS|BUNNINGS WAREHOUSE)",
+                "EXTRACTED_STORE",
+            ),
+            (r"(?:ABN|abn)[\s:]*(\d{2}\s?\d{3}\s?\d{3}\s?\d{3})", "EXTRACTED_ABN"),
         ]
 
         # Extract basic key-value pairs
@@ -78,6 +87,12 @@ class KeyValueExtractor:
         cleaned = self._clean_extracted_data(extracted)
 
         self.logger.info(f"Extracted {len(cleaned)} fields from KEY-VALUE response")
+        if cleaned:
+            self.logger.debug(f"Extracted fields: {list(cleaned.keys())}")
+        else:
+            self.logger.warning("No KEY-VALUE fields extracted from response")
+            self.logger.debug(f"Response snippet: {response[:200]}...")
+
         return cleaned
 
     def _clean_extracted_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
