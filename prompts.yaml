@@ -46,27 +46,42 @@ tax_invoice_extraction_prompt: |
   - All amounts must include currency symbols
 
 fuel_receipt_extraction_prompt: |
-  <|image|>Extract information from this fuel receipt for vehicle expense claims.
+  <|image|>
+  Extract information from this Australian fuel receipt and return in KEY-VALUE format.
   
-  Provide the following in KEY: VALUE format:
-  
-  DATE: [purchase date]
-  STORE: [fuel station name]
-  TOTAL: [total amount paid]
+  Use this exact format:
+  DATE: [purchase date in DD/MM/YYYY format]
+  STORE: [fuel station name in capitals]
+  ABN: [Australian Business Number - XX XXX XXX XXX format]
+  PAYER: [customer/member name if visible]
   TAX: [GST amount]
-  ABN: [station ABN if visible]
+  TOTAL: [total amount including GST]
   PRODUCTS: [fuel type and quantity - e.g., 13ULP 32.230L]
   QUANTITIES: [fuel quantity in litres]
   PRICES: [price per litre]
-  PAYMENT_METHOD: [payment method used]
+  PAYMENT_METHOD: [payment method]
   RECEIPT: [receipt/transaction number]
   
-  FUEL-SPECIFIC REQUIREMENTS:
-  - Extract fuel quantity and price per litre for vehicle logs
-  - Include fuel type (ULP, Diesel, etc.) in PRODUCTS field
-  - Include station location if visible
-  - GST component for tax purposes
-  - Member number if available
+  Example for fuel receipt:
+  DATE: 08/06/2024
+  STORE: COSTCO WHOLESALE AUSTRALIA
+  ABN: 57 104 012 893
+  TAX: 5.35
+  TOTAL: 58.88
+  PRODUCTS: 13ULP 32.230L
+  QUANTITIES: 32.230L
+  PRICES: 1.827
+  PAYMENT_METHOD: MASTERCARD CREDIT
+  RECEIPT: 826240100123
+  
+  FORMATTING REQUIREMENTS:
+  - Store names: Use ALL CAPITALS (COSTCO, SHELL, BP)
+  - Dates: DD/MM/YYYY format (Australian standard)
+  - Fuel quantities: Include L for litres (32.230L)
+  - Prices: Price per litre without currency symbol
+  - Extract ALL visible information from the receipt
+  
+  Return ONLY the key-value pairs above. No explanations.
 
 # === DOCUMENT CLASSIFICATION PROMPTS ===
 
