@@ -18,7 +18,8 @@
 !*.json
 !*.csv
 
-# Allow environment example files
+# Allow environment files (contains optimized performance settings)
+!.env
 !.env.example
 
 # Ignore specific markdown files that contain local paths
