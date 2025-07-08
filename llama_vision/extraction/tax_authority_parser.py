@@ -95,7 +95,6 @@ class TaxAuthorityParser:
             (r"RECEIPT:\s*([^\n\r]+)", "RECEIPT"),
             (r"INVOICE_NUMBER:\s*([^\n\r]+)", "INVOICE_NUMBER"),
             (r"PAYMENT_METHOD:\s*([^\n\r]+)", "PAYMENT_METHOD"),
-            
             # Bank statement specific patterns
             (r"ACCOUNT_NUMBER:\s*([^\n\r]+)", "ACCOUNT_NUMBER"),
             (r"BSB:\s*([^\n\r]+)", "BSB"),
@@ -158,7 +157,7 @@ class TaxAuthorityParser:
                         parsed["invoice_number"] = value
                     elif key == "PAYMENT_METHOD":
                         parsed["payment_method"] = value
-                    
+
                     # Bank statement specific mappings
                     elif key == "BANK_NAME":
                         parsed["supplier_name"] = value  # Map to standard field
@@ -171,7 +170,12 @@ class TaxAuthorityParser:
                             parsed["invoice_date"] = value  # Map to standard field
                             parsed["transaction_date"] = value
                             parsed["statement_date"] = value
-                    elif key in ["OPENING_BALANCE", "CLOSING_BALANCE", "TOTAL_CREDITS", "TOTAL_DEBITS"]:
+                    elif key in [
+                        "OPENING_BALANCE",
+                        "CLOSING_BALANCE",
+                        "TOTAL_CREDITS",
+                        "TOTAL_DEBITS",
+                    ]:
                         # Extract numeric amount
                         numeric_value = re.search(r"[\d.]+", value.replace("$", ""))
                         if numeric_value:
@@ -207,7 +211,6 @@ class TaxAuthorityParser:
             "prices": ["PRICES"],
             "invoice_number": ["INVOICE_NUMBER", "RECEIPT"],
             "payment_method": ["PAYMENT_METHOD"],
-            
             # Bank statement specific fields
             "account_number": ["ACCOUNT_NUMBER"],
             "bsb": ["BSB"],

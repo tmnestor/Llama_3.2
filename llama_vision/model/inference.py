@@ -300,15 +300,19 @@ Output document type only."""
                 "debit",
                 "credit",
                 "available balance",
-                "current balance"
+                "current balance",
             ]
             has_bank_content = any(
                 indicator in response_text for indicator in bank_indicators
             )
 
             # Look for account number patterns (Australian BSB + Account format)
-            bank_account_pattern = r"\d{3}-\d{3}\s+\d{4,10}|\bBSB\b|\baccount\s+number\b"
-            has_bank_account = bool(re.search(bank_account_pattern, response_text, re.IGNORECASE))
+            bank_account_pattern = (
+                r"\d{3}-\d{3}\s+\d{4,10}|\bBSB\b|\baccount\s+number\b"
+            )
+            has_bank_account = bool(
+                re.search(bank_account_pattern, response_text, re.IGNORECASE)
+            )
 
             if "fuel_receipt" in response_lower or "fuel receipt" in response_lower:
                 doc_type = "fuel_receipt"
@@ -329,7 +333,9 @@ Output document type only."""
             elif "tax" in response_lower and "invoice" in response_lower:
                 doc_type = "tax_invoice"
                 confidence = 0.80
-            elif "bank_statement" in response_lower or "bank statement" in response_lower:
+            elif (
+                "bank_statement" in response_lower or "bank statement" in response_lower
+            ):
                 doc_type = "bank_statement"
                 confidence = 0.90
             elif has_bank_content or has_bank_account:
@@ -357,7 +363,13 @@ Output document type only."""
                 "confidence": confidence,
                 "classification_response": response,
                 "is_business_document": doc_type
-                in ["receipt", "tax_invoice", "fuel_receipt", "bank_statement", "invoice"]
+                in [
+                    "receipt",
+                    "tax_invoice",
+                    "fuel_receipt",
+                    "bank_statement",
+                    "invoice",
+                ]
                 and confidence > 0.7,
             }
 
@@ -415,24 +427,24 @@ Output document type only."""
 
     def classify_document_modern(self, image_path: str) -> dict[str, Any]:
         """Classify document using modern registry architecture.
-        
+
         Args:
             image_path: Path to image file
-            
+
         Returns:
             Classification result dictionary
         """
         try:
             from ..extraction.modern_adapter import get_modern_adapter
-            
+
             # Get OCR text first using the model
             classification_prompt = """<|image|>Read all visible text from this document for classification purposes."""
             ocr_response = self.predict(image_path, classification_prompt)
-            
+
             # Use modern classification
             adapter = get_modern_adapter()
             return adapter.classify_document_modern(ocr_response)
-            
+
         except Exception as e:
             self.logger.error(f"Modern document classification failed: {e}")
             # Fallback to legacy classification

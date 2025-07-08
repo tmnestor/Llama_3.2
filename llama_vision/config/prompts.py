@@ -180,28 +180,32 @@ class PromptManager:
         self, document_type: str, classification_response: str = ""
     ) -> str:
         """Get prompt using modern registry architecture.
-        
+
         Args:
             document_type: Type of document
             classification_response: Classification response for content analysis
-            
+
         Returns:
             The prompt text for that document type
         """
         try:
             from ..extraction.modern_adapter import get_modern_adapter
-            
+
             adapter = get_modern_adapter()
             prompt = adapter.get_prompt_for_document_type_modern(
                 document_type, classification_response
             )
-            
+
             if prompt:
                 return prompt
             else:
                 # Fallback to legacy method
-                return self.get_prompt_for_document_type(document_type, classification_response)
-                
+                return self.get_prompt_for_document_type(
+                    document_type, classification_response
+                )
+
         except Exception:
             # Fallback to legacy method
-            return self.get_prompt_for_document_type(document_type, classification_response)
+            return self.get_prompt_for_document_type(
+                document_type, classification_response
+            )
