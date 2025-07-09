@@ -19,6 +19,12 @@ class TaxAuthorityParser:
         self.log_level = log_level
         self.logger = setup_logging(log_level)
 
+    def _get_fuel_parser(self):
+        """Get fuel parser instance for fuel receipt processing."""
+        from .fuel_receipt_handler import FuelReceiptHandler
+
+        return FuelReceiptHandler(self.log_level)
+
     def parse_receipt_response(self, response: str) -> Dict[str, Any]:
         """Parse KEY-VALUE format responses from Llama for tax data extraction.
 
@@ -451,13 +457,19 @@ class TaxAuthorityParser:
 
         # Use dedicated fuel parser for fuel receipts
         fuel_parser = self._get_fuel_parser()
-        if fuel_parser._is_fuel_receipt(response):
-            parsed = fuel_parser.extract_fuel_fields(response, parsed)
 
-            # Also extract fuel items for the items field
-            fuel_items = fuel_parser.extract_fuel_items(response)
-            if fuel_items and "items" not in parsed:
-                parsed["items"] = fuel_items
+        # Check if this is a fuel receipt using the classification indicators
+        fuel_indicators = fuel_parser.get_classification_indicators()
+        is_fuel_receipt = any(
+            indicator in response.lower() for indicator in fuel_indicators
+        )
+
+        if is_fuel_receipt:
+            # Use the fuel receipt handler to extract fuel-specific fields
+            fuel_result = fuel_parser.extract_fields(response)
+            if fuel_result and fuel_result.fields:
+                # Merge fuel-specific fields into the main parsed data
+                parsed.update(fuel_result.fields)
 
         if found_fuel:
             # Only add normalized field, avoid duplicates
