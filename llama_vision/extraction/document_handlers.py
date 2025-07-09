@@ -272,7 +272,9 @@ class DocumentTypeRegistry:
         """Get list of registered document types."""
         return list(self.handlers.keys())
 
-    def classify_document(self, ocr_text: str, early_stop_threshold: float = 0.85) -> ClassificationResult:
+    def classify_document(
+        self, ocr_text: str, early_stop_threshold: float = 0.85
+    ) -> ClassificationResult:
         """Classify document using registered handlers with early stopping optimization.
 
         Args:
@@ -295,16 +297,16 @@ class DocumentTypeRegistry:
         # Get classification from handlers with early stopping
         results = []
         best_confidence = 0.0
-        
+
         # Order handlers by typical confidence (most specific first)
         handler_order = ["fuel_receipt", "bank_statement", "tax_invoice", "receipt"]
         ordered_handlers = []
-        
+
         # Add handlers in priority order
         for handler_type in handler_order:
             if handler_type in self.handlers:
                 ordered_handlers.append(self.handlers[handler_type])
-        
+
         # Add any remaining handlers
         for handler in self.handlers.values():
             if handler not in ordered_handlers:
@@ -315,7 +317,7 @@ class DocumentTypeRegistry:
             if result.document_type != "unknown":
                 results.append(result)
                 best_confidence = max(best_confidence, result.confidence)
-                
+
                 # Early stopping: if we have high confidence, stop processing
                 if result.confidence >= early_stop_threshold:
                     self.logger.info(

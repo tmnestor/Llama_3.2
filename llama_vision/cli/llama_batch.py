@@ -176,8 +176,12 @@ def extract(
         console.print(
             f"[dim]Average time per image:[/dim] {total_time / len(results):.2f} seconds"
         )
-        throughput_per_minute = 60 / (total_time / len(results)) if total_time > 0 else 0
-        console.print(f"[dim]Throughput:[/dim] {throughput_per_minute:.1f} images/minute")
+        throughput_per_minute = (
+            60 / (total_time / len(results)) if total_time > 0 else 0
+        )
+        console.print(
+            f"[dim]Throughput:[/dim] {throughput_per_minute:.1f} images/minute"
+        )
 
         # Save results
         output_path = Path(output_file)
@@ -217,7 +221,17 @@ def process_single_image(
     try:
         start_time = time.time()
 
-        # Run inference
+        # Get document classification first
+        classification_result = inference_engine.classify_document(image_path)
+
+        # Log classification result
+        doc_type = classification_result.get("document_type", "unknown")
+        confidence = classification_result.get("confidence", 0.0)
+        console.print(
+            f"[dim]  → Classified as {doc_type} (confidence: {confidence:.2f})[/dim]"
+        )
+
+        # Run inference for extraction
         response = inference_engine.predict(image_path, prompt)
 
         # Extract data
@@ -240,6 +254,12 @@ def process_single_image(
             "success": True,
             "extraction_method": extraction_method,
             "timestamp": time.time(),
+            # Add classification information
+            "document_type": classification_result.get("document_type", "unknown"),
+            "classification_confidence": classification_result.get("confidence", 0.0),
+            "is_business_document": classification_result.get(
+                "is_business_document", False
+            ),
         }
 
         # Add extracted fields
@@ -273,6 +293,9 @@ def save_results_csv(results: List[dict], output_path: Path) -> None:
         "image_name",
         "image_path",
         "success",
+        "document_type",
+        "classification_confidence",
+        "is_business_document",
         "inference_time_seconds",
         "field_count",
         "extraction_method",
@@ -338,6 +361,37 @@ def show_batch_summary(successful_results: List[dict]) -> None:
         f"  [cyan]Fields:[/cyan] avg={avg_fields:.1f}, min={min_fields}, max={max_fields}"
     )
 
+    # Classification statistics
+    doc_types = {}
+    confidences = []
+    business_docs = 0
+
+    for result in successful_results:
+        doc_type = result.get("document_type", "unknown")
+        confidence = result.get("classification_confidence", 0.0)
+        is_business = result.get("is_business_document", False)
+
+        doc_types[doc_type] = doc_types.get(doc_type, 0) + 1
+        confidences.append(confidence)
+        if is_business:
+            business_docs += 1
+
+    if doc_types:
+        console.print("  [cyan]Document types:[/cyan]")
+        sorted_types = sorted(doc_types.items(), key=lambda x: x[1], reverse=True)
+        for doc_type, count in sorted_types:
+            percentage = (count / len(successful_results)) * 100
+            console.print(f"    • {doc_type}: {count} ({percentage:.1f}%)")
+
+    if confidences:
+        avg_confidence = sum(confidences) / len(confidences)
+        console.print(
+            f"  [cyan]Average classification confidence:[/cyan] {avg_confidence:.2f}"
+        )
+        console.print(
+            f"  [cyan]Business documents:[/cyan] {business_docs}/{len(successful_results)} ({(business_docs / len(successful_results)) * 100:.1f}%)"
+        )
+
     # Common extracted fields
     field_frequency = {}
     for result in successful_results:
@@ -351,6 +405,9 @@ def show_batch_summary(successful_results: List[dict]) -> None:
                 "extraction_method",
                 "timestamp",
                 "response_length",
+                "document_type",
+                "classification_confidence",
+                "is_business_document",
             ]:
                 field_frequency[field] = field_frequency.get(field, 0) + 1
 
@@ -503,6 +560,9 @@ def show_field_analysis(results: List[dict]) -> None:
                 "timestamp",
                 "response_length",
                 "error",
+                "document_type",
+                "classification_confidence",
+                "is_business_document",
             ]:
                 continue
 

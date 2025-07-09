@@ -390,7 +390,9 @@ class MealReceiptAwkExtractor(AwkExtractor):
             },
             {
                 "field": "ITEMS",
-                "line_filters": ["/\d+\s+x\s+|qty\s+\d+|\d+\.\d{2}\s*$|@\s*\d+\.\d{2}/"],
+                "line_filters": [
+                    "/\d+\s+x\s+|qty\s+\d+|\d+\.\d{2}\s*$|@\s*\d+\.\d{2}/"
+                ],
                 "patterns": [
                     r"(\d+\s+x\s+.+)",  # Quantity format: "2 x Coffee"
                     r"(.*\s+@\s*\$?\d+\.\d{2})",  # Price format: "Coffee @ $4.50"
@@ -400,7 +402,9 @@ class MealReceiptAwkExtractor(AwkExtractor):
             },
             {
                 "field": "PAYMENT_METHOD",
-                "line_filters": ["/credit|debit|eftpos|cash|visa|mastercard|amex|paypal/"],
+                "line_filters": [
+                    "/credit|debit|eftpos|cash|visa|mastercard|amex|paypal/"
+                ],
                 "patterns": [
                     r"(CREDIT|DEBIT|EFTPOS|CASH)",
                     r"(VISA|MASTERCARD|AMEX)",
@@ -441,7 +445,9 @@ class MealReceiptAwkExtractor(AwkExtractor):
             },
             {
                 "field": "ADDRESS",
-                "line_filters": ["/street|road|ave|avenue|drive|lane|place|suburb|city/"],
+                "line_filters": [
+                    "/street|road|ave|avenue|drive|lane|place|suburb|city/"
+                ],
                 "patterns": [
                     r"(\d+\s+.*(?:Street|Road|Ave|Avenue|Drive|Lane|Place))",
                     r"(.*(?:Street|Road|Ave|Avenue|Drive|Lane|Place).*)",
@@ -616,7 +622,9 @@ class AccommodationAwkExtractor(AwkExtractor):
             },
             {
                 "field": "ADDRESS",
-                "line_filters": ["/street|road|ave|avenue|drive|lane|place|suburb|city/"],
+                "line_filters": [
+                    "/street|road|ave|avenue|drive|lane|place|suburb|city/"
+                ],
                 "patterns": [
                     r"(\d+\s+.*(?:Street|Road|Ave|Avenue|Drive|Lane|Place))",
                     r"(.*(?:Street|Road|Ave|Avenue|Drive|Lane|Place).*)",
@@ -715,7 +723,9 @@ class TravelDocumentAwkExtractor(AwkExtractor):
             },
             {
                 "field": "ORIGIN",
-                "line_filters": ["/from|depart|origin|sydney|melbourne|brisbane|perth|adelaide/"],
+                "line_filters": [
+                    "/from|depart|origin|sydney|melbourne|brisbane|perth|adelaide/"
+                ],
                 "patterns": [
                     r"From[:\s]*([A-Z][a-zA-Z\s]+)",
                     r"Depart[:\s]*([A-Z][a-zA-Z\s]+)",
@@ -727,7 +737,9 @@ class TravelDocumentAwkExtractor(AwkExtractor):
             },
             {
                 "field": "DESTINATION",
-                "line_filters": ["/to|arrive|destination|sydney|melbourne|brisbane|perth|adelaide/"],
+                "line_filters": [
+                    "/to|arrive|destination|sydney|melbourne|brisbane|perth|adelaide/"
+                ],
                 "patterns": [
                     r"To[:\s]*([A-Z][a-zA-Z\s]+)",
                     r"Arrive[:\s]*([A-Z][a-zA-Z\s]+)",
@@ -1029,7 +1041,9 @@ class ParkingTollAwkExtractor(AwkExtractor):
             },
             {
                 "field": "PAYMENT_METHOD",
-                "line_filters": ["/credit|debit|eftpos|cash|visa|mastercard|amex|contactless/"],
+                "line_filters": [
+                    "/credit|debit|eftpos|cash|visa|mastercard|amex|contactless/"
+                ],
                 "patterns": [
                     r"(CREDIT|DEBIT|EFTPOS|CASH)",
                     r"(VISA|MASTERCARD|AMEX)",
@@ -1136,7 +1150,9 @@ class EquipmentSuppliesAwkExtractor(AwkExtractor):
             },
             {
                 "field": "ITEMS",
-                "line_filters": ["/computer|laptop|software|hardware|printer|monitor|keyboard|mouse|cable|adapter/"],
+                "line_filters": [
+                    "/computer|laptop|software|hardware|printer|monitor|keyboard|mouse|cable|adapter/"
+                ],
                 "patterns": [
                     r"(.*COMPUTER.*)",
                     r"(.*LAPTOP.*)",
@@ -1160,7 +1176,9 @@ class EquipmentSuppliesAwkExtractor(AwkExtractor):
             },
             {
                 "field": "CATEGORIES",
-                "line_filters": ["/electronics|computers|software|hardware|accessories|supplies/"],
+                "line_filters": [
+                    "/electronics|computers|software|hardware|accessories|supplies/"
+                ],
                 "patterns": [
                     r"(ELECTRONICS)",
                     r"(COMPUTERS)",
@@ -1175,7 +1193,9 @@ class EquipmentSuppliesAwkExtractor(AwkExtractor):
             },
             {
                 "field": "BRANDS",
-                "line_filters": ["/apple|microsoft|dell|hp|lenovo|asus|acer|canon|epson|brother|samsung/"],
+                "line_filters": [
+                    "/apple|microsoft|dell|hp|lenovo|asus|acer|canon|epson|brother|samsung/"
+                ],
                 "patterns": [
                     r"(APPLE)",
                     r"(MICROSOFT)",
@@ -1283,7 +1303,9 @@ class EquipmentSuppliesAwkExtractor(AwkExtractor):
             },
             {
                 "field": "PAYMENT_METHOD",
-                "line_filters": ["/credit|debit|eftpos|cash|visa|mastercard|amex|paypal/"],
+                "line_filters": [
+                    "/credit|debit|eftpos|cash|visa|mastercard|amex|paypal/"
+                ],
                 "patterns": [
                     r"(CREDIT|DEBIT|EFTPOS|CASH)",
                     r"(VISA|MASTERCARD|AMEX)",
@@ -1293,7 +1315,9 @@ class EquipmentSuppliesAwkExtractor(AwkExtractor):
             },
             {
                 "field": "ADDRESS",
-                "line_filters": ["/street|road|ave|avenue|drive|lane|place|suburb|city/"],
+                "line_filters": [
+                    "/street|road|ave|avenue|drive|lane|place|suburb|city/"
+                ],
                 "patterns": [
                     r"(\d+\s+.*(?:Street|Road|Ave|Avenue|Drive|Lane|Place))",
                     r"(.*(?:Street|Road|Ave|Avenue|Drive|Lane|Place).*)",
@@ -1391,7 +1415,9 @@ class OtherDocumentAwkExtractor(AwkExtractor):
             },
             {
                 "field": "DESCRIPTION",
-                "line_filters": ["/description|service|product|item|goods|consultation/"],
+                "line_filters": [
+                    "/description|service|product|item|goods|consultation/"
+                ],
                 "patterns": [
                     r"Description[:\s]*([^\n\r]+)",
                     r"Service[:\s]*([^\n\r]+)",
@@ -1475,7 +1501,9 @@ class OtherDocumentAwkExtractor(AwkExtractor):
             },
             {
                 "field": "DOCUMENT_TYPE",
-                "line_filters": ["/invoice|receipt|quote|estimate|proposal|contract|agreement/"],
+                "line_filters": [
+                    "/invoice|receipt|quote|estimate|proposal|contract|agreement/"
+                ],
                 "patterns": [
                     r"(INVOICE)",
                     r"(RECEIPT)",
@@ -1518,7 +1546,9 @@ class OtherDocumentAwkExtractor(AwkExtractor):
             },
             {
                 "field": "PAYMENT_METHOD",
-                "line_filters": ["/credit|debit|eftpos|cash|visa|mastercard|amex|paypal|cheque|bank transfer/"],
+                "line_filters": [
+                    "/credit|debit|eftpos|cash|visa|mastercard|amex|paypal|cheque|bank transfer/"
+                ],
                 "patterns": [
                     r"(CREDIT|DEBIT|EFTPOS|CASH)",
                     r"(VISA|MASTERCARD|AMEX)",
@@ -1531,7 +1561,9 @@ class OtherDocumentAwkExtractor(AwkExtractor):
             },
             {
                 "field": "ADDRESS",
-                "line_filters": ["/street|road|ave|avenue|drive|lane|place|suburb|city|state|postcode/"],
+                "line_filters": [
+                    "/street|road|ave|avenue|drive|lane|place|suburb|city|state|postcode/"
+                ],
                 "patterns": [
                     r"(\d+\s+.*(?:Street|Road|Ave|Avenue|Drive|Lane|Place))",
                     r"(.*(?:Street|Road|Ave|Avenue|Drive|Lane|Place).*)",
