@@ -254,8 +254,12 @@ def process_single_image(
                 "confidence": classification_result.confidence,
                 "is_business_document": classification_result.is_business_document,
             }
-        except Exception:
+        except Exception as e:
             # Fallback classification if extraction engine fails
+            print(f"DEBUG: Classification failed with error: {e}")
+            import traceback
+
+            traceback.print_exc()
             classification_dict = {
                 "document_type": "unknown",
                 "confidence": 0.0,
