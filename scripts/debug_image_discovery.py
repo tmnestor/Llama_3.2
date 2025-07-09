@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
 """Debug script to show exactly what images are being discovered."""
 
+import sys
 from pathlib import Path
+
+# Add the project root to Python path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from llama_vision.image.loaders import ImageLoader
+
 
 def main():
     print("🔍 Debugging Image Discovery")
@@ -30,7 +36,7 @@ def main():
     # Check for specific directories
     datasets_path = Path("datasets")
     if datasets_path.exists():
-        print(f"\n📂 Contents of datasets directory:")
+        print("\n📂 Contents of datasets directory:")
         for item in sorted(datasets_path.iterdir()):
             if item.is_dir():
                 image_count = len(list(item.glob("*.png"))) + len(list(item.glob("*.jpg")))
