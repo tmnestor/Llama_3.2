@@ -34,6 +34,10 @@ datasets/*/test/
 !datasets/*/metadata.json
 !datasets/*/metadata.csv
 
+# Ignore all images in main datasets directory
+datasets/image*.png
+datasets/image_name_mapping.txt
+
 # Allow synthetic bank statements for remote analysis
 !datasets/synthetic_bank_statements/
 !datasets/synthetic_bank_statements/*.png
