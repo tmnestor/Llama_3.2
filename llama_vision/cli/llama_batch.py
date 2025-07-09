@@ -209,7 +209,7 @@ def process_single_image(
     image_path: str,
     inference_engine: LlamaInferenceEngine,
     prompt_manager: PromptManager,
-    prompt_name: str,  # Now clearly named as prompt_name
+    _prompt_name: str,  # Unused - using smart classification instead
     _extraction_method: str,  # Unused - kept for API compatibility
     current: int,
     total: int,
@@ -219,17 +219,21 @@ def process_single_image(
     try:
         print(f"DEBUG: Starting processing for {Path(image_path).name}")
 
-        # Use the core single image processing function
+        # Use the core single image processing function with smart classification
         from .llama_single import process_single_image_core
 
-        # Call the core function with the manual prompt name
+        # Call the core function with NO manual prompt - let it use smart classification
         result = process_single_image_core(
             image_path=image_path,
             inference_engine=inference_engine,
             prompt_manager=prompt_manager,
-            prompt=prompt_name,  # Pass the prompt name, not the prompt text
+            prompt=None,  # Use None to trigger smart classification mode
             classify_only=False,
             _verbose=False,
+        )
+
+        print(
+            f"DEBUG: Classified {Path(image_path).name} as {result['document_type']} (confidence: {result['confidence']:.2f})"
         )
 
         print(f"DEBUG: Core processing completed for {Path(image_path).name}")
