@@ -240,10 +240,23 @@ def process_single_image(
         )
 
         # Extract data and get classification from extraction engine
-        if extraction_method == "tax_authority":
-            extracted_data = extractor.parse_receipt_response(response)
-        else:
-            extracted_data = extractor.extract(response)
+        print(f"DEBUG: About to extract using method: {extraction_method}")
+        try:
+            if extraction_method == "tax_authority":
+                print(
+                    f"DEBUG: Calling extractor.parse_receipt_response() for {Path(image_path).name}"
+                )
+                extracted_data = extractor.parse_receipt_response(response)
+            else:
+                print(f"DEBUG: Calling extractor.extract() for {Path(image_path).name}")
+                extracted_data = extractor.extract(response)
+        except Exception as e:
+            print(f"DEBUG: Extraction failed for {Path(image_path).name}: {e}")
+            import traceback
+
+            traceback.print_exc()
+            # Use empty extraction data as fallback
+            extracted_data = {}
         print(
             f"DEBUG: Extraction completed for {Path(image_path).name}, extracted {len(extracted_data)} fields"
         )
