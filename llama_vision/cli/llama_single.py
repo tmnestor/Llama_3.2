@@ -3,7 +3,7 @@
 import json
 import time
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import typer
 from rich.console import Console
@@ -11,13 +11,121 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from ..config import PromptManager, load_config
 from ..evaluation import InternVLComparison
-from ..image import ImageLoader
 from ..model import LlamaInferenceEngine, LlamaModelLoader
 
 app = typer.Typer(
     help="Single image processing with Llama-3.2-Vision", rich_markup_mode="rich"
 )
 console = Console()
+
+
+def process_single_image_core(
+    image_path: str,
+    inference_engine: LlamaInferenceEngine,
+    prompt_manager: PromptManager,
+    prompt: Optional[str] = None,
+    classify_only: bool = False,
+    _verbose: bool = False,
+) -> Dict[str, Any]:
+    """Core single image processing logic that can be reused by batch processing.
+
+    Args:
+        image_path: Path to the image file
+        inference_engine: Initialized inference engine
+        prompt_manager: Initialized prompt manager
+        prompt: Manual prompt (if None, uses smart classification)
+        classify_only: If True, only classify document type
+        verbose: Enable verbose logging
+
+    Returns:
+        Dictionary containing processing results
+    """
+    # Determine operation mode
+    use_smart_classification = prompt is None
+    use_manual_prompt = prompt is not None
+
+    # Validate image
+    if not Path(image_path).exists():
+        raise FileNotFoundError(f"Image file not found: {image_path}")
+
+    # STEP 1: Classification (if needed)
+    document_type = None
+    classification_result = None
+    confidence = 0.0
+    selected_prompt_name = prompt or "manual"
+
+    if use_smart_classification or classify_only:
+        classification_result = inference_engine.classify_document(image_path)
+        document_type = classification_result["document_type"]
+        confidence = classification_result["confidence"]
+
+        if classify_only:
+            return {
+                "success": True,
+                "classify_only": True,
+                "document_type": document_type,
+                "confidence": confidence,
+                "is_business_document": classification_result.get(
+                    "is_business_document", False
+                ),
+                "classification_result": classification_result,
+            }
+
+    # STEP 2: Prompt Selection
+    if use_smart_classification:
+        try:
+            selected_prompt = prompt_manager.get_prompt_for_document_type(
+                document_type,
+                classification_result.get("classification_response", ""),
+            )
+            # Get the actual prompt name from document type mapping
+            type_mapping = prompt_manager.metadata.get("document_type_mapping", {})
+            selected_prompt_name = type_mapping.get(
+                document_type, f"{document_type}_prompt"
+            )
+        except KeyError as e:
+            raise KeyError(
+                f"No prompt configured for document type '{document_type}'"
+            ) from e
+    elif use_manual_prompt:
+        try:
+            selected_prompt = prompt_manager.get_prompt(prompt)
+            selected_prompt_name = prompt
+        except KeyError as e:
+            raise KeyError(f"Prompt '{prompt}' not found") from e
+
+    # STEP 3: Run inference
+    start_time = time.time()
+    response = inference_engine.predict(image_path, selected_prompt)
+    inference_time = time.time() - start_time
+
+    # STEP 4: Parse extracted data using modern registry
+    from ..extraction.extraction_engine import DocumentExtractionEngine
+
+    engine = DocumentExtractionEngine()
+    extraction_result = engine.extract_fields(document_type, response)
+    extracted_data = extraction_result.fields if extraction_result else {}
+
+    # Return comprehensive result
+    return {
+        "success": True,
+        "classify_only": False,
+        "image_path": image_path,
+        "image_name": Path(image_path).name,
+        "document_type": document_type,
+        "confidence": confidence,
+        "is_business_document": classification_result.get("is_business_document", False)
+        if classification_result
+        else False,
+        "classification_result": classification_result,
+        "selected_prompt": selected_prompt_name,
+        "extraction_method": "modern_registry",
+        "inference_time_seconds": inference_time,
+        "response_length": len(response),
+        "field_count": len(extracted_data),
+        "extracted_data": extracted_data,
+        "raw_response": response,
+    }
 
 
 @app.command()
@@ -41,8 +149,6 @@ def extract(
 
     # Determine operation mode
     use_smart_classification = prompt is None
-    use_manual_prompt = prompt is not None
-
     mode_description = (
         "Smart classification" if use_smart_classification else "Manual prompt"
     )
@@ -66,104 +172,33 @@ def extract(
             prompt_manager = PromptManager()
             progress.update(init_task, description="✅ Components initialized")
 
-            # Validate image
-            validate_task = progress.add_task("Validating image...", total=None)
-            image_loader = ImageLoader(log_level)
-            if not Path(image_path).exists():
-                console.print(f"[red]Error: Image file not found: {image_path}[/red]")
-                raise typer.Exit(1)
-            progress.update(validate_task, description="✅ Image validated")
-
-            # STEP 1: Classification (if needed)
-            document_type = None
-            classification_result = None
-            confidence = 0.0
-            selected_prompt_name = prompt or "manual"
-
-            if use_smart_classification or classify_only:
-                classify_task = progress.add_task(
-                    "Classifying document type...", total=None
-                )
-                classification_result = inference_engine.classify_document(image_path)
-                document_type = classification_result["document_type"]
-                confidence = classification_result["confidence"]
-                progress.update(
-                    classify_task,
-                    description=f"✅ Classified as: {document_type} ({confidence:.2f})",
-                )
-
-                if classify_only:
-                    # Just show classification and exit
-                    console.print("\n[green]📋 Document Classification:[/green]")
-                    console.print(f"  Type: {document_type}")
-                    console.print(f"  Confidence: {confidence:.2f}")
-                    console.print(
-                        f"  Business Document: {classification_result.get('is_business_document', False)}"
-                    )
-                    return
-
-            # STEP 2: Prompt Selection
-            if use_smart_classification:
-                prompt_task = progress.add_task(
-                    "Selecting optimal prompt...", total=None
-                )
-                try:
-                    selected_prompt = prompt_manager.get_prompt_for_document_type(
-                        document_type,
-                        classification_result.get("classification_response", ""),
-                    )
-                    # Get the actual prompt name from document type mapping
-                    type_mapping = prompt_manager.metadata.get(
-                        "document_type_mapping", {}
-                    )
-                    selected_prompt_name = type_mapping.get(
-                        document_type, f"{document_type}_prompt"
-                    )
-                except KeyError:
-                    console.print(
-                        f"[red]Error: No prompt configured for document type '{document_type}'[/red]"
-                    )
-                    available_types = list(
-                        prompt_manager.metadata.get("document_type_mapping", {}).keys()
-                    )
-                    console.print(
-                        f"Supported document types: {', '.join(available_types)}"
-                    )
-                    raise typer.Exit(1) from None
-                progress.update(
-                    prompt_task, description=f"✅ Selected prompt for {document_type}"
-                )
-            elif use_manual_prompt:
-                prompt_task = progress.add_task("Loading manual prompt...", total=None)
-                try:
-                    selected_prompt = prompt_manager.get_prompt(prompt)
-                    selected_prompt_name = prompt
-                except KeyError:
-                    available_prompts = prompt_manager.list_prompts()
-                    console.print(f"[red]Error: Prompt '{prompt}' not found.[/red]")
-                    console.print(
-                        f"Available prompts: {', '.join(available_prompts[:5])}..."
-                    )
-                    raise typer.Exit(1) from None
-                progress.update(prompt_task, description="✅ Manual prompt loaded")
-
-            # STEP 3: Run inference
-            inference_task = progress.add_task(
-                "Running optimized extraction...", total=None
+            # Process image using core function
+            process_task = progress.add_task("Processing image...", total=None)
+            result = process_single_image_core(
+                image_path=image_path,
+                inference_engine=inference_engine,
+                prompt_manager=prompt_manager,
+                prompt=prompt,
+                classify_only=classify_only,
+                verbose=verbose,
             )
-            start_time = time.time()
-            response = inference_engine.predict(image_path, selected_prompt)
-            inference_time = time.time() - start_time
-            progress.update(inference_task, description="✅ Extraction complete")
+            progress.update(process_task, description="✅ Processing complete")
 
-            # STEP 4: Parse extracted data using modern registry
-            parse_task = progress.add_task("Parsing extracted data...", total=None)
-            from ..extraction.extraction_engine import DocumentExtractionEngine
+        # Handle classify_only mode
+        if result.get("classify_only", False):
+            console.print("\n[green]📋 Document Classification:[/green]")
+            console.print(f"  Type: {result['document_type']}")
+            console.print(f"  Confidence: {result['confidence']:.2f}")
+            console.print(f"  Business Document: {result['is_business_document']}")
+            return
 
-            engine = DocumentExtractionEngine()
-            extraction_result = engine.extract_fields(document_type, response)
-            extracted_data = extraction_result.fields if extraction_result else {}
-            progress.update(parse_task, description="✅ Data parsed")
+        # Extract variables from result
+        document_type = result["document_type"]
+        confidence = result["confidence"]
+        selected_prompt_name = result["selected_prompt"]
+        inference_time = result["inference_time_seconds"]
+        extracted_data = result["extracted_data"]
+        classification_result = result["classification_result"]
 
         # Display results
         console.print("\n[green]🎉 Extraction Complete![/green]")
@@ -214,7 +249,7 @@ def extract(
                 "extraction_method": "modern_registry",
                 "inference_time_seconds": inference_time,
                 "extracted_data": extracted_data,
-                "response_length": len(response),
+                "response_length": result["response_length"],
                 "extraction_mode": "smart_classification"
                 if use_smart_classification
                 else "manual_prompt",

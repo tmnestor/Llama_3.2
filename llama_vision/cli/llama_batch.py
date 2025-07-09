@@ -12,7 +12,6 @@ from rich.console import Console
 from rich.progress import BarColumn, Progress, TextColumn, TimeElapsedColumn
 
 from ..config import PromptManager, load_config
-from ..extraction import KeyValueExtractor, TaxAuthorityParser
 from ..image import ImageLoader
 from ..model import LlamaInferenceEngine, LlamaModelLoader
 
@@ -83,20 +82,8 @@ def extract(
             console.print(f"Available prompts: {', '.join(available_prompts[:5])}...")
             raise typer.Exit(1) from None
 
-        # Setup extractor
-        if extraction_method == "key_value":
-            extractor = KeyValueExtractor(log_level)
-        elif extraction_method == "tax_authority":
-            extractor = TaxAuthorityParser(log_level)
-        elif extraction_method == "json":
-            from ..extraction import JSONExtractor
-
-            extractor = JSONExtractor(log_level)
-        else:
-            console.print(
-                f"[red]Error: Unknown extraction method: {extraction_method}[/red]"
-            )
-            raise typer.Exit(1) from None
+        # Note: extraction_method is now handled by the core processing function
+        # which uses the modern registry system instead of legacy extractors
 
         # Process images
         console.print(
@@ -122,7 +109,7 @@ def extract(
                     result = process_single_image(
                         str(image_path),
                         inference_engine,
-                        extractor,
+                        prompt_manager,
                         prompt,
                         extraction_method,
                         i + 1,
@@ -138,7 +125,7 @@ def extract(
                             process_single_image,
                             str(image_path),
                             inference_engine,
-                            extractor,
+                            prompt_manager,
                             prompt,
                             extraction_method,
                             i + 1,
@@ -221,105 +208,60 @@ def extract(
 def process_single_image(
     image_path: str,
     inference_engine: LlamaInferenceEngine,
-    extractor,
+    prompt_manager: PromptManager,
     prompt: str,
-    extraction_method: str,
+    _extraction_method: str,  # Unused - kept for API compatibility
     current: int,
     total: int,
 ) -> dict:
-    """Process a single image and return results."""
+    """Process a single image using the core single image processing logic."""
 
     try:
-        start_time = time.time()
         print(f"DEBUG: Starting processing for {Path(image_path).name}")
 
-        # Run inference for extraction
-        response = inference_engine.predict(image_path, prompt)
-        print(
-            f"DEBUG: Inference completed for {Path(image_path).name}, response length: {len(response)}"
+        # Use the core single image processing function
+        from .llama_single import process_single_image_core
+
+        # Call the core function with the manual prompt name
+        result = process_single_image_core(
+            image_path=image_path,
+            inference_engine=inference_engine,
+            prompt_manager=prompt_manager,
+            prompt=prompt,  # This is the prompt name, not the prompt text
+            classify_only=False,
+            verbose=False,
         )
 
-        # Extract data and get classification from extraction engine
-        print(f"DEBUG: About to extract using method: {extraction_method}")
-        try:
-            if extraction_method == "tax_authority":
-                print(
-                    f"DEBUG: Calling extractor.parse_receipt_response() for {Path(image_path).name}"
-                )
-                extracted_data = extractor.parse_receipt_response(response)
-            else:
-                print(f"DEBUG: Calling extractor.extract() for {Path(image_path).name}")
-                extracted_data = extractor.extract(response)
-        except Exception as e:
-            print(f"DEBUG: Extraction failed for {Path(image_path).name}: {e}")
-            import traceback
+        print(f"DEBUG: Core processing completed for {Path(image_path).name}")
 
-            traceback.print_exc()
-            # Use empty extraction data as fallback
-            extracted_data = {}
-        print(
-            f"DEBUG: Extraction completed for {Path(image_path).name}, extracted {len(extracted_data)} fields"
-        )
-
-        # Get classification from the extraction engine to avoid duplicate inference
-        print(f"DEBUG: Starting classification for {Path(image_path).name}")
-        try:
-            from ..extraction.extraction_engine import DocumentExtractionEngine
-
-            engine = DocumentExtractionEngine()
-            print("DEBUG: DocumentExtractionEngine created, calling classify_document")
-            classification_result = engine.classify_document(response)
-            print(
-                f"DEBUG: Classification completed: {classification_result.document_type} (confidence: {classification_result.confidence})"
-            )
-
-            # Convert to dict format
-            classification_dict = {
-                "document_type": classification_result.document_type,
-                "confidence": classification_result.confidence,
-                "is_business_document": classification_result.is_business_document,
-            }
-        except Exception as e:
-            # Fallback classification if extraction engine fails
-            print(f"DEBUG: Classification failed with error: {e}")
-            import traceback
-
-            traceback.print_exc()
-            classification_dict = {
-                "document_type": "unknown",
-                "confidence": 0.0,
-                "is_business_document": False,
-            }
-
-        inference_time = time.time() - start_time
-
-        # Prepare result
-        result = {
+        # Adapt the result to match the expected batch format
+        batch_result = {
             "image_path": image_path,
             "image_name": Path(image_path).name,
-            "inference_time_seconds": inference_time,
-            "response_length": len(response),
+            "inference_time_seconds": result["inference_time_seconds"],
+            "response_length": result["response_length"],
             "processed_order": current,
             "total_images": total,
-            "field_count": len(extracted_data),
+            "field_count": result["field_count"],
             "success": True,
-            "extraction_method": extraction_method,
+            "extraction_method": result["extraction_method"],
             "timestamp": time.time(),
-            # Add classification information
-            "document_type": classification_dict["document_type"],
-            "classification_confidence": classification_dict["confidence"],
-            "is_business_document": classification_dict["is_business_document"],
+            # Classification information
+            "document_type": result["document_type"],
+            "classification_confidence": result["confidence"],
+            "is_business_document": result["is_business_document"],
         }
 
         # Add extracted fields
-        result.update(extracted_data)
+        batch_result.update(result["extracted_data"])
 
         print(
             f"DEBUG: Result prepared for {Path(image_path).name}, returning success=True"
         )
-        return result
+        return batch_result
 
     except Exception as e:
+        print(f"DEBUG: Error processing {Path(image_path).name}: {e}")
         return {
             "image_path": image_path,
             "image_name": Path(image_path).name,

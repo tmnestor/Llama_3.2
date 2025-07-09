@@ -1609,3 +1609,324 @@ class OtherDocumentAwkExtractor(AwkExtractor):
             f"AWK other document extraction found {len(extracted)} fields: {list(extracted.keys())}"
         )
         return extracted
+
+
+class ProfessionalServicesAwkExtractor(AwkExtractor):
+    """Professional services specific AWK-style extractor."""
+
+    def get_professional_services_extraction_rules(self) -> List[Dict[str, Any]]:
+        """Get AWK-style extraction rules for professional services."""
+        return [
+            {
+                "field": "FIRM",
+                "line_filters": [
+                    "/law|legal|solicitor|accountant|consultant|professional|chartered|advisory/"
+                ],
+                "patterns": [
+                    r"(.*LAW.*)",
+                    r"(.*LEGAL.*)",
+                    r"(.*SOLICITORS?.*)",
+                    r"(.*ACCOUNTANTS?.*)",
+                    r"(.*CONSULTANTS?.*)",
+                    r"(.*PROFESSIONAL.*)",
+                    r"(.*CHARTERED.*)",
+                    r"(.*ADVISORY.*)",
+                    r"(.*SERVICES.*)",
+                    r"(.*PARTNERS.*)",
+                    r"(.*& ASSOCIATES.*)",
+                    r"(.*CPA.*)",
+                    r"(.*PTY.*LTD.*)",
+                    r"(.*LIMITED.*)",
+                ],
+                "transform": ["upper", "normalize_spaces"],
+            },
+            {
+                "field": "PROFESSIONAL",
+                "line_filters": [
+                    "/mr|ms|mrs|dr|partner|director|principal|solicitor|accountant/"
+                ],
+                "patterns": [
+                    r"(Mr\.?\s+[A-Z][a-zA-Z\s]+)",
+                    r"(Ms\.?\s+[A-Z][a-zA-Z\s]+)",
+                    r"(Mrs\.?\s+[A-Z][a-zA-Z\s]+)",
+                    r"(Dr\.?\s+[A-Z][a-zA-Z\s]+)",
+                    r"Partner[:\s]*([A-Z][a-zA-Z\s]+)",
+                    r"Director[:\s]*([A-Z][a-zA-Z\s]+)",
+                    r"Principal[:\s]*([A-Z][a-zA-Z\s]+)",
+                    r"Solicitor[:\s]*([A-Z][a-zA-Z\s]+)",
+                    r"Accountant[:\s]*([A-Z][a-zA-Z\s]+)",
+                ],
+                "transform": ["normalize_spaces"],
+            },
+            {
+                "field": "ABN",
+                "line_filters": ["/abn|\d{2}\s\d{3}\s\d{3}\s\d{3}/"],
+                "patterns": [
+                    r"ABN:?\s*(\d{2}\s?\d{3}\s?\d{3}\s?\d{3})",
+                    r"(\d{2}\s\d{3}\s\d{3}\s\d{3})",
+                ],
+                "transform": ["normalize_spaces"],
+            },
+            {
+                "field": "TOTAL",
+                "line_filters": ["/total|amount|fee|cost|invoice|balance/"],
+                "patterns": [
+                    r"TOTAL[^\d]*\$(\d+(?:,\d{3})*\.\d{2})",
+                    r"\$(\d+(?:,\d{3})*\.\d{2})\s*TOTAL",
+                    r"AMOUNT[^\d]*\$(\d+(?:,\d{3})*\.\d{2})",
+                    r"FEE[^\d]*\$(\d+(?:,\d{3})*\.\d{2})",
+                    r"COST[^\d]*\$(\d+(?:,\d{3})*\.\d{2})",
+                    r"INVOICE[^\d]*\$(\d+(?:,\d{3})*\.\d{2})",
+                    r"BALANCE[^\d]*\$(\d+(?:,\d{3})*\.\d{2})",
+                ],
+                "transform": ["prefix:$", "remove_commas"],
+            },
+            {
+                "field": "GST",
+                "line_filters": ["/gst|tax/"],
+                "patterns": [
+                    r"GST[^\d]*\$(\d+(?:,\d{3})*\.\d{2})",
+                    r"Tax[^\d]*\$(\d+(?:,\d{3})*\.\d{2})",
+                    r"\$(\d+(?:,\d{3})*\.\d{2})\s*GST",
+                    r"\$(\d+(?:,\d{3})*\.\d{2})\s*Tax",
+                ],
+                "transform": ["prefix:$", "remove_commas"],
+            },
+            {
+                "field": "SERVICES",
+                "line_filters": [
+                    "/consultation|advice|representation|review|preparation|analysis|audit|compliance/"
+                ],
+                "patterns": [
+                    r"(Legal consultation.*)",
+                    r"(Legal advice.*)",
+                    r"(Legal representation.*)",
+                    r"(Document review.*)",
+                    r"(Tax preparation.*)",
+                    r"(Financial analysis.*)",
+                    r"(Audit services.*)",
+                    r"(Compliance review.*)",
+                    r"(Contract review.*)",
+                    r"(Due diligence.*)",
+                    r"(Professional consultation.*)",
+                    r"(Advisory services.*)",
+                    r"(Accounting services.*)",
+                    r"(Bookkeeping services.*)",
+                    r"(Court representation.*)",
+                    r"(Legal drafting.*)",
+                    r"(Tax advice.*)",
+                    r"(Business advice.*)",
+                    r"(Professional services.*)",
+                ],
+                "transform": ["normalize_spaces"],
+            },
+            {
+                "field": "RATE",
+                "line_filters": ["/rate|hour|hourly/"],
+                "patterns": [
+                    r"Rate[:\s]*\$(\d+(?:,\d{3})*\.\d{2})",
+                    r"Hourly[:\s]*\$(\d+(?:,\d{3})*\.\d{2})",
+                    r"\$(\d+(?:,\d{3})*\.\d{2})\s*per\s*hour",
+                    r"\$(\d+(?:,\d{3})*\.\d{2})/hr",
+                    r"\$(\d+(?:,\d{3})*\.\d{2})\s*hourly",
+                ],
+                "transform": ["prefix:$", "remove_commas"],
+            },
+            {
+                "field": "HOURS",
+                "line_filters": ["/hours|time|duration/"],
+                "patterns": [
+                    r"Hours[:\s]*(\d+(?:\.\d+)?)",
+                    r"Time[:\s]*(\d+(?:\.\d+)?)",
+                    r"Duration[:\s]*(\d+(?:\.\d+)?)",
+                    r"(\d+(?:\.\d+)?)\s*hours?",
+                    r"(\d+(?:\.\d+)?)\s*hrs?",
+                ],
+                "transform": ["strip"],
+            },
+            {
+                "field": "MATTER",
+                "line_filters": ["/matter|case|file|reference/"],
+                "patterns": [
+                    r"Matter[:\s]*([A-Z0-9\-\/]+)",
+                    r"Case[:\s]*([A-Z0-9\-\/]+)",
+                    r"File[:\s]*([A-Z0-9\-\/]+)",
+                    r"Reference[:\s]*([A-Z0-9\-\/]+)",
+                    r"Ref[:\s]*([A-Z0-9\-\/]+)",
+                ],
+                "transform": ["upper"],
+            },
+            {
+                "field": "CLIENT",
+                "line_filters": ["/client|customer|party/"],
+                "patterns": [
+                    r"Client[:\s]*([A-Z][a-zA-Z\s]+)",
+                    r"Customer[:\s]*([A-Z][a-zA-Z\s]+)",
+                    r"Party[:\s]*([A-Z][a-zA-Z\s]+)",
+                    r"([A-Z][a-zA-Z\s]+)\s*\(Client\)",
+                ],
+                "transform": ["normalize_spaces"],
+            },
+            {
+                "field": "INVOICE_NUMBER",
+                "line_filters": ["/invoice|inv|number|#/"],
+                "patterns": [
+                    r"Invoice[:\s]*#?(\d+)",
+                    r"Inv[:\s]*#?(\d+)",
+                    r"Number[:\s]*#?(\d+)",
+                    r"#(\d+)",
+                    r"(\d{4,})",  # Long numbers
+                ],
+                "transform": ["strip"],
+            },
+            {
+                "field": "DISBURSEMENTS",
+                "line_filters": ["/disbursement|expense|outgoing|cost/"],
+                "patterns": [
+                    r"Disbursements?[:\s]*\$(\d+(?:,\d{3})*\.\d{2})",
+                    r"Expenses?[:\s]*\$(\d+(?:,\d{3})*\.\d{2})",
+                    r"Outgoings?[:\s]*\$(\d+(?:,\d{3})*\.\d{2})",
+                    r"Costs?[:\s]*\$(\d+(?:,\d{3})*\.\d{2})",
+                ],
+                "transform": ["prefix:$", "remove_commas"],
+            },
+            {
+                "field": "PROFESSIONAL_FEES",
+                "line_filters": ["/professional|fee|charge/"],
+                "patterns": [
+                    r"Professional\s+Fees?[:\s]*\$(\d+(?:,\d{3})*\.\d{2})",
+                    r"Fees?[:\s]*\$(\d+(?:,\d{3})*\.\d{2})",
+                    r"Charges?[:\s]*\$(\d+(?:,\d{3})*\.\d{2})",
+                    r"Legal\s+Fees?[:\s]*\$(\d+(?:,\d{3})*\.\d{2})",
+                    r"Service\s+Fees?[:\s]*\$(\d+(?:,\d{3})*\.\d{2})",
+                ],
+                "transform": ["prefix:$", "remove_commas"],
+            },
+            {
+                "field": "RETAINER",
+                "line_filters": ["/retainer|deposit|advance/"],
+                "patterns": [
+                    r"Retainer[:\s]*\$(\d+(?:,\d{3})*\.\d{2})",
+                    r"Deposit[:\s]*\$(\d+(?:,\d{3})*\.\d{2})",
+                    r"Advance[:\s]*\$(\d+(?:,\d{3})*\.\d{2})",
+                ],
+                "transform": ["prefix:$", "remove_commas"],
+            },
+            {
+                "field": "CONSULTATION_TYPE",
+                "line_filters": ["/consultation|meeting|conference|review/"],
+                "patterns": [
+                    r"(Initial consultation)",
+                    r"(Follow-up consultation)",
+                    r"(Client meeting)",
+                    r"(Document review)",
+                    r"(Court conference)",
+                    r"(Telephone consultation)",
+                    r"(Email consultation)",
+                    r"(Legal research)",
+                    r"(Case preparation)",
+                    r"(Contract review)",
+                    r"(Due diligence)",
+                    r"(Compliance review)",
+                    r"(Tax consultation)",
+                    r"(Financial review)",
+                    r"(Audit meeting)",
+                ],
+                "transform": ["normalize_spaces"],
+            },
+            {
+                "field": "PAYMENT_METHOD",
+                "line_filters": ["/payment|credit|debit|eftpos|cash|bank|transfer/"],
+                "patterns": [
+                    r"Payment[:\s]*(.*)",
+                    r"(CREDIT|DEBIT|EFTPOS|CASH)",
+                    r"(BANK TRANSFER|DIRECT DEBIT)",
+                    r"(CHEQUE|CHECK)",
+                    r"(VISA|MASTERCARD|AMEX)",
+                ],
+                "transform": ["upper"],
+            },
+            {
+                "field": "BILLING_PERIOD",
+                "line_filters": ["/period|from|to|month/"],
+                "patterns": [
+                    r"Period[:\s]*([^\\n]+)",
+                    r"Billing\s+Period[:\s]*([^\\n]+)",
+                    r"From[:\s]*(\d{2}/\d{2}/\d{4})",
+                    r"To[:\s]*(\d{2}/\d{2}/\d{4})",
+                    r"(\d{2}/\d{2}/\d{4})\s*-\s*(\d{2}/\d{2}/\d{4})",
+                    r"([A-Z][a-z]+\s+\d{4})",  # Month Year
+                ],
+                "transform": ["strip"],
+            },
+            {
+                "field": "DATE",
+                "line_filters": ["NF > 2"],  # Lines with multiple fields
+                "patterns": [
+                    r"(\d{2}/\d{2}/\d{4})",
+                    r"(\d{1,2}/\d{1,2}/\d{4})",
+                    r"(\d{4}-\d{2}-\d{2})",
+                    r"(\d{1,2}\s+[A-Z][a-z]+\s+\d{4})",  # Day Month Year
+                ],
+                "transform": ["strip"],
+            },
+            {
+                "field": "ADDRESS",
+                "line_filters": [
+                    "/street|road|ave|avenue|drive|lane|place|suburb|city|level|suite|floor/"
+                ],
+                "patterns": [
+                    r"(Level\s+\d+.*)",
+                    r"(Suite\s+\d+.*)",
+                    r"(Floor\s+\d+.*)",
+                    r"(\d+\s+.*(?:Street|Road|Ave|Avenue|Drive|Lane|Place))",
+                    r"(.*(?:Street|Road|Ave|Avenue|Drive|Lane|Place).*)",
+                    r"([A-Z][a-z]+\s+[A-Z][a-z]+.*\d{4})",  # Suburb State PostCode
+                    r"(GPO\s+Box\s+\d+.*)",
+                    r"(PO\s+Box\s+\d+.*)",
+                ],
+                "transform": ["normalize_spaces"],
+            },
+        ]
+
+    def extract_professional_services_fields(self, response: str) -> Dict[str, Any]:
+        """Extract professional services fields using AWK-style rules."""
+        rules = self.get_professional_services_extraction_rules()
+        extracted = self.extract_fields(response, rules)
+
+        # Post-process specific to professional services
+        if "HOURS" in extracted:
+            # Ensure hours is a float
+            hours = extracted["HOURS"]
+            if isinstance(hours, str):
+                try:
+                    extracted["HOURS"] = float(hours)
+                except ValueError:
+                    pass
+
+        if "RATE" in extracted:
+            # Clean up rate formatting
+            rate = extracted["RATE"]
+            if isinstance(rate, str):
+                # Remove currency symbols and commas
+                rate = rate.replace("$", "").replace(",", "")
+                try:
+                    extracted["RATE"] = float(rate)
+                except ValueError:
+                    pass
+
+        # Calculate total if we have rate and hours
+        if "RATE" in extracted and "HOURS" in extracted:
+            try:
+                rate = float(extracted["RATE"])
+                hours = float(extracted["HOURS"])
+                calculated_total = rate * hours
+                if "TOTAL" not in extracted:
+                    extracted["TOTAL"] = calculated_total
+            except (ValueError, TypeError):
+                pass
+
+        self.logger.debug(
+            f"AWK professional services extraction found {len(extracted)} fields: {list(extracted.keys())}"
+        )
+        return extracted
