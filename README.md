@@ -273,28 +273,28 @@ python verify_setup.py
 conda activate vision_env
 
 # Smart classification + extraction (default mode)
-python -m llama_vision.cli.llama_single extract path/to/receipt.jpg
+python -m llama_vision.cli.llama_single extract datasets/image1.png
 
 # Smart classification with verbose logging
-python -m llama_vision.cli.llama_single extract receipt.jpg --verbose
+python -m llama_vision.cli.llama_single extract datasets/image10.png --verbose
 
 # Manual prompt selection (bypasses classification)
-python -m llama_vision.cli.llama_single extract receipt.jpg \
+python -m llama_vision.cli.llama_single extract datasets/image8.png \
   --prompt bank_statement_extraction_prompt
 
 # Classification only (no extraction)
-python -m llama_vision.cli.llama_single extract receipt.jpg --classify-only
+python -m llama_vision.cli.llama_single extract datasets/image25.png --classify-only
 
 # Save results to JSON file
-python -m llama_vision.cli.llama_single extract receipt.jpg \
+python -m llama_vision.cli.llama_single extract datasets/image50.png \
   --output-file results.json
 
 # Compare with InternVL performance
-python -m llama_vision.cli.llama_single extract receipt.jpg \
+python -m llama_vision.cli.llama_single extract datasets/image75.png \
   --compare-internvl --verbose
 
 # Document type classification
-python -m llama_vision.cli.llama_single classify receipt.jpg
+python -m llama_vision.cli.llama_single classify datasets/image100.png
 
 # List available prompts
 python -m llama_vision.cli.llama_single list-prompts
@@ -302,20 +302,62 @@ python -m llama_vision.cli.llama_single list-prompts
 # Validate configuration
 python -m llama_vision.cli.llama_single validate-config
 
-# Batch processing
-python -m llama_vision.cli.llama_batch extract images/ \
+# Batch processing with generic image names
+python -m llama_vision.cli.llama_batch extract datasets/ \
   --output-file batch_results.csv \
   --max-workers 4
+
+# Process specific image range
+python -m llama_vision.cli.llama_batch extract datasets/image{1..20}.png \
+  --output-file first_20_results.csv
 ```
 
 ### Registry-Based Extraction Modes
 
-The modern CLI uses the Registry + Strategy + Director pattern:
+The modern CLI uses the Registry + Strategy + Director pattern with distributed classification:
 
 - **Smart Classification** (default): Automatically detects document type and selects optimal prompt
 - **Manual Prompt**: Override classification with specific prompt selection
 - **Modern Registry**: Uses advanced handlers with fallback logic for robust extraction
 - **Compliance Scoring**: Calculates extraction quality scores (0.0-1.0)
+- **Generic Image Names**: Uses image1.png-image111.png to prevent filename bias
+- **AWK-Style Fallback**: Advanced pattern matching when KEY-VALUE parsing fails
+- **Image Mapping**: `datasets/image_name_mapping.txt` tracks original→new name relationships
+
+### Document Handler Integration
+
+The system now includes specialized handlers for 11 document types:
+
+```bash
+# Test different document types with generic image names
+python -m llama_vision.cli.llama_single extract datasets/image1.png   # Bank statement
+python -m llama_vision.cli.llama_single extract datasets/image8.png   # Bank statement  
+python -m llama_vision.cli.llama_single extract datasets/image9.png   # Invoice
+python -m llama_vision.cli.llama_single extract datasets/image11.png  # Fuel receipt
+python -m llama_vision.cli.llama_single extract datasets/image25.png  # Meal receipt
+python -m llama_vision.cli.llama_single extract datasets/image50.png  # Accommodation
+python -m llama_vision.cli.llama_single extract datasets/image75.png  # Travel document
+python -m llama_vision.cli.llama_single extract datasets/image100.png # Parking/toll receipt
+```
+
+### Handler-Specific Extraction
+
+Each handler provides specialized extraction patterns:
+
+```python
+# Document handlers with distributed classification
+from llama_vision.extraction.fuel_receipt_handler import FuelReceiptHandler
+from llama_vision.extraction.meal_receipt_handler import MealReceiptHandler
+from llama_vision.extraction.accommodation_handler import AccommodationHandler
+from llama_vision.extraction.travel_document_handler import TravelDocumentHandler
+from llama_vision.extraction.parking_toll_handler import ParkingTollHandler
+from llama_vision.extraction.equipment_supplies_handler import EquipmentSuppliesHandler
+
+# Each handler automatically detects document type and extracts relevant fields
+handler = FuelReceiptHandler()
+result = handler.extract_fields("datasets/image11.png")
+print(f"Fuel receipt fields: {result.fields}")
+```
 
 ### Available Options
 
@@ -350,19 +392,19 @@ prompt_manager = PromptManager()
 
 # Get prompt and process image
 prompt = prompt_manager.get_prompt("factual_information_prompt")
-response = inference_engine.predict("receipt.jpg", prompt)
+response = inference_engine.predict("datasets/image1.png", prompt)
 
 # Extract structured data
 parser = TaxAuthorityParser()
 extracted_data = parser.parse_receipt_response(response)
 
-# Batch processing
+# Batch processing with consolidated datasets directory
 image_loader = ImageLoader()
-images = image_loader.discover_images("path/to/images")
+images = image_loader.discover_images("datasets")
 
 # InternVL comparison
 comparison = InternVLComparison(config)
-results = comparison.run_comparison("receipt.jpg")
+results = comparison.run_comparison("datasets/image1.png")
 ```
 
 #### Jupyter Notebook Usage
@@ -394,8 +436,8 @@ from llama_vision.config import PromptManager
 prompt_manager = PromptManager()
 prompt = prompt_manager.get_prompt("factual_information_prompt")
 
-# Process and parse
-response = inference_engine.predict("test_receipt.jpg", prompt)
+# Process and parse with generic image name
+response = inference_engine.predict("datasets/image111.png", prompt)
 parser = TaxAuthorityParser()
 data = parser.parse_receipt_response(response)
 
@@ -824,14 +866,14 @@ from tax_invoice_ner import WorkExpenseNERExtractor
 
 extractor = WorkExpenseNERExtractor()
 
-# Extract from invoice
-invoice_result = extractor.extract_entities("invoice.png")
+# Extract from invoice (using generic image names)
+invoice_result = extractor.extract_entities("datasets/image9.png")
 
 # Extract from bank statement  
-statement_result = extractor.extract_entities("bank_statement.png")
+statement_result = extractor.extract_entities("datasets/image8.png")
 
 # Extract from receipt
-receipt_result = extractor.extract_entities("receipt.png")
+receipt_result = extractor.extract_entities("datasets/image11.png")
 
 for entity in invoice_result['entities']:
     print(f"{entity['label']}: {entity['text']} (confidence: {entity['confidence']:.2f})")
@@ -847,7 +889,7 @@ entity_groups = {
 }
 
 for group_name, entity_types in entity_groups.items():
-    result = extractor.extract_entities("invoice.png", entity_types=entity_types)
+    result = extractor.extract_entities("datasets/image9.png", entity_types=entity_types)
     print(f"{group_name}: {len(result['entities'])} entities found")
 ```
 
