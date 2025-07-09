@@ -176,6 +176,8 @@ def extract(
         console.print(
             f"[dim]Average time per image:[/dim] {total_time / len(results):.2f} seconds"
         )
+        throughput_per_minute = 60 / (total_time / len(results)) if total_time > 0 else 0
+        console.print(f"[dim]Throughput:[/dim] {throughput_per_minute:.1f} images/minute")
 
         # Save results
         output_path = Path(output_file)
