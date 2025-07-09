@@ -229,7 +229,7 @@ def process_single_image(
             prompt_manager=prompt_manager,
             prompt=prompt,  # This is the prompt name, not the prompt text
             classify_only=False,
-            verbose=False,
+            _verbose=False,
         )
 
         print(f"DEBUG: Core processing completed for {Path(image_path).name}")
