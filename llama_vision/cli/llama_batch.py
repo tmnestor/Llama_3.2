@@ -232,17 +232,35 @@ def process_single_image(
     try:
         start_time = time.time()
 
-        # Get document classification first
-        classification_result = inference_engine.classify_document(image_path)
-
         # Run inference for extraction
         response = inference_engine.predict(image_path, prompt)
 
-        # Extract data
+        # Extract data and get classification from extraction engine
         if extraction_method == "tax_authority":
             extracted_data = extractor.parse_receipt_response(response)
         else:
             extracted_data = extractor.extract(response)
+
+        # Get classification from the extraction engine to avoid duplicate inference
+        try:
+            from ..extraction.extraction_engine import DocumentExtractionEngine
+
+            engine = DocumentExtractionEngine()
+            classification_result = engine.classify_document(response)
+
+            # Convert to dict format
+            classification_dict = {
+                "document_type": classification_result.document_type,
+                "confidence": classification_result.confidence,
+                "is_business_document": classification_result.is_business_document,
+            }
+        except Exception:
+            # Fallback classification if extraction engine fails
+            classification_dict = {
+                "document_type": "unknown",
+                "confidence": 0.0,
+                "is_business_document": False,
+            }
 
         inference_time = time.time() - start_time
 
@@ -259,11 +277,9 @@ def process_single_image(
             "extraction_method": extraction_method,
             "timestamp": time.time(),
             # Add classification information
-            "document_type": classification_result.get("document_type", "unknown"),
-            "classification_confidence": classification_result.get("confidence", 0.0),
-            "is_business_document": classification_result.get(
-                "is_business_document", False
-            ),
+            "document_type": classification_dict["document_type"],
+            "classification_confidence": classification_dict["confidence"],
+            "is_business_document": classification_dict["is_business_document"],
         }
 
         # Add extracted fields
