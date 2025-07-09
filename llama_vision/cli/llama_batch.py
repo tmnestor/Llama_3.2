@@ -231,22 +231,34 @@ def process_single_image(
 
     try:
         start_time = time.time()
+        print(f"DEBUG: Starting processing for {Path(image_path).name}")
 
         # Run inference for extraction
         response = inference_engine.predict(image_path, prompt)
+        print(
+            f"DEBUG: Inference completed for {Path(image_path).name}, response length: {len(response)}"
+        )
 
         # Extract data and get classification from extraction engine
         if extraction_method == "tax_authority":
             extracted_data = extractor.parse_receipt_response(response)
         else:
             extracted_data = extractor.extract(response)
+        print(
+            f"DEBUG: Extraction completed for {Path(image_path).name}, extracted {len(extracted_data)} fields"
+        )
 
         # Get classification from the extraction engine to avoid duplicate inference
+        print(f"DEBUG: Starting classification for {Path(image_path).name}")
         try:
             from ..extraction.extraction_engine import DocumentExtractionEngine
 
             engine = DocumentExtractionEngine()
+            print("DEBUG: DocumentExtractionEngine created, calling classify_document")
             classification_result = engine.classify_document(response)
+            print(
+                f"DEBUG: Classification completed: {classification_result.document_type} (confidence: {classification_result.confidence})"
+            )
 
             # Convert to dict format
             classification_dict = {
@@ -289,6 +301,9 @@ def process_single_image(
         # Add extracted fields
         result.update(extracted_data)
 
+        print(
+            f"DEBUG: Result prepared for {Path(image_path).name}, returning success=True"
+        )
         return result
 
     except Exception as e:
