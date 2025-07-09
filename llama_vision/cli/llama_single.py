@@ -48,28 +48,28 @@ def process_single_image_core(
     if not Path(image_path).exists():
         raise FileNotFoundError(f"Image file not found: {image_path}")
 
-    # STEP 1: Classification (always run to get document type for extraction)
+    # STEP 1: Classification (if needed)
     document_type = None
     classification_result = None
     confidence = 0.0
     selected_prompt_name = prompt or "manual"
 
-    # Always run classification to get document type for extraction
-    classification_result = inference_engine.classify_document(image_path)
-    document_type = classification_result["document_type"]
-    confidence = classification_result["confidence"]
+    if use_smart_classification or classify_only:
+        classification_result = inference_engine.classify_document(image_path)
+        document_type = classification_result["document_type"]
+        confidence = classification_result["confidence"]
 
-    if classify_only:
-        return {
-            "success": True,
-            "classify_only": True,
-            "document_type": document_type,
-            "confidence": confidence,
-            "is_business_document": classification_result.get(
-                "is_business_document", False
-            ),
-            "classification_result": classification_result,
-        }
+        if classify_only:
+            return {
+                "success": True,
+                "classify_only": True,
+                "document_type": document_type,
+                "confidence": confidence,
+                "is_business_document": classification_result.get(
+                    "is_business_document", False
+                ),
+                "classification_result": classification_result,
+            }
 
     # STEP 2: Prompt Selection
     if use_smart_classification:
@@ -103,7 +103,10 @@ def process_single_image_core(
     from ..extraction.extraction_engine import DocumentExtractionEngine
 
     engine = DocumentExtractionEngine()
-    extraction_result = engine.extract_fields(document_type, response)
+
+    # For manual prompts, use "receipt" as default document type for extraction
+    extraction_document_type = document_type or "receipt"
+    extraction_result = engine.extract_fields(extraction_document_type, response)
     extracted_data = extraction_result.fields if extraction_result else {}
 
     # Return comprehensive result
@@ -112,7 +115,7 @@ def process_single_image_core(
         "classify_only": False,
         "image_path": image_path,
         "image_name": Path(image_path).name,
-        "document_type": document_type,
+        "document_type": extraction_document_type,  # Use the document type used for extraction
         "confidence": confidence,
         "is_business_document": classification_result.get("is_business_document", False)
         if classification_result
