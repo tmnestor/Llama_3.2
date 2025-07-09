@@ -95,7 +95,7 @@ def load_config() -> LlamaConfig:
             "LLAMA_VISION_BASE_PATH", "/home/jovyan/nfs_share/tod/Llama_3.2"
         ),
         image_path=os.getenv(
-            "LLAMA_VISION_IMAGE_PATH", "/home/jovyan/nfs_share/tod/data/examples"
+            "LLAMA_VISION_IMAGE_PATH", "/home/jovyan/nfs_share/tod/Llama_3.2/datasets"
         ),
         output_path=os.getenv(
             "LLAMA_VISION_OUTPUT_PATH", "/home/jovyan/nfs_share/tod/Llama_3.2/output"

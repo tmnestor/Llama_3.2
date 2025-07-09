@@ -51,36 +51,53 @@ class ImageLoader:
         # Get parent directory to find related data folders
         data_parent = base_path.parent if base_path.is_file() else base_path
 
-        # Define image collections to discover
+        # Define image collections to discover - datasets directory only
         image_collections = {
             "configured_images": self._find_images_in_path(base_path, recursive),
-            "examples": self._find_images_in_path(data_parent / "examples", recursive)
-            if (data_parent / "examples").exists()
-            else [],
-            "test_images": self._find_images_in_path(
-                data_parent / "test_images", recursive
-            )
-            if (data_parent / "test_images").exists()
-            else [],
-            "sroie_images": self._find_images_in_path(
-                data_parent / "sroie" / "images", recursive
-            )
-            if (data_parent / "sroie" / "images").exists()
-            else [],
-            "synthetic_images": self._find_images_in_path(
-                data_parent / "synthetic" / "images", recursive
-            )
-            if (data_parent / "synthetic" / "images").exists()
-            else [],
         }
+        
+        # Check for datasets directory structure
+        datasets_path = None
+        if base_path.name == "datasets":
+            datasets_path = base_path
+        elif (base_path / "datasets").exists():
+            datasets_path = base_path / "datasets"
+        elif (data_parent / "datasets").exists():
+            datasets_path = data_parent / "datasets"
+        
+        if datasets_path and datasets_path.exists():
+            # All images are now in datasets directory
+            image_collections["datasets"] = self._find_images_in_path(datasets_path, recursive)
+            
+            # Check for specific subdirectories within datasets
+            subdirs = ["examples", "synthetic_receipts", "synthetic_bank_statements", "test_images"]
+            for subdir in subdirs:
+                subdir_path = datasets_path / subdir
+                if subdir_path.exists():
+                    image_collections[f"datasets_{subdir}"] = self._find_images_in_path(subdir_path, recursive)
+                    
+            # Check for images subdirectory in synthetic_receipts
+            synthetic_receipts_images = datasets_path / "synthetic_receipts" / "images"
+            if synthetic_receipts_images.exists():
+                image_collections["synthetic_receipts_images"] = self._find_images_in_path(synthetic_receipts_images, recursive)
+        else:
+            self.logger.warning(f"No 'datasets' directory found in {base_path} or {data_parent}")
+            self.logger.info("Please ensure images are organized in a 'datasets' directory")
 
-        # Look for specific test files
-        test_files = [
-            data_parent / "test_receipt.png",
-            data_parent / "test_receipt.jpg",
-            data_parent / "sample_receipt.png",
-            data_parent / "sample_receipt.jpg",
-        ]
+        # Look for specific test files in datasets directory
+        test_files = []
+        
+        if datasets_path:
+            test_files.extend([
+                datasets_path / "test_receipt.png",
+                datasets_path / "test_receipt.jpg",
+                datasets_path / "sample_receipt.png",
+                datasets_path / "sample_receipt.jpg",
+                datasets_path / "examples" / "test_receipt.png",
+                datasets_path / "examples" / "test_receipt.jpg",
+                datasets_path / "examples" / "sample_receipt.png",
+                datasets_path / "examples" / "sample_receipt.jpg",
+            ])
 
         test_receipt_images = [f for f in test_files if f.exists()]
         if test_receipt_images:
