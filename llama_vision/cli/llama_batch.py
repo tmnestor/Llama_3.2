@@ -73,9 +73,9 @@ def extract(
         inference_engine = LlamaInferenceEngine(model, processor, config)
         prompt_manager = PromptManager()
 
-        # Get prompt
+        # Validate prompt exists (but don't overwrite the prompt_name)
         try:
-            prompt = prompt_manager.get_prompt(prompt_name)
+            _prompt_text = prompt_manager.get_prompt(prompt_name)
         except KeyError:
             available_prompts = prompt_manager.list_prompts()
             console.print(f"[red]Error: Prompt '{prompt_name}' not found.[/red]")
@@ -110,7 +110,7 @@ def extract(
                         str(image_path),
                         inference_engine,
                         prompt_manager,
-                        prompt,
+                        prompt_name,  # Pass the prompt name, not the full text
                         extraction_method,
                         i + 1,
                         len(all_images),
@@ -126,7 +126,7 @@ def extract(
                             str(image_path),
                             inference_engine,
                             prompt_manager,
-                            prompt,
+                            prompt_name,  # Pass the prompt name, not the full text
                             extraction_method,
                             i + 1,
                             len(all_images),
@@ -209,7 +209,7 @@ def process_single_image(
     image_path: str,
     inference_engine: LlamaInferenceEngine,
     prompt_manager: PromptManager,
-    prompt: str,
+    prompt_name: str,  # Now clearly named as prompt_name
     _extraction_method: str,  # Unused - kept for API compatibility
     current: int,
     total: int,
@@ -227,7 +227,7 @@ def process_single_image(
             image_path=image_path,
             inference_engine=inference_engine,
             prompt_manager=prompt_manager,
-            prompt=prompt,  # This is the prompt name, not the prompt text
+            prompt=prompt_name,  # Pass the prompt name, not the prompt text
             classify_only=False,
             _verbose=False,
         )
