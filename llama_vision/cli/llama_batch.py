@@ -165,6 +165,17 @@ def extract(
                             }
                         progress.update(task, advance=1)
 
+        # Display classification results after processing
+        console.print("\n[yellow]📋 Classification Results:[/yellow]")
+        for i, result in enumerate(results):
+            if result and result.get("success", False):
+                doc_type = result.get("document_type", "unknown")
+                confidence = result.get("classification_confidence", 0.0)
+                image_name = result.get("image_name", "unknown")
+                console.print(
+                    f"  {i + 1:3d}. {image_name} → {doc_type} (confidence: {confidence:.2f})"
+                )
+
         total_time = time.time() - start_time
         successful_results = [r for r in results if r and r.get("success", False)]
 
@@ -223,13 +234,6 @@ def process_single_image(
 
         # Get document classification first
         classification_result = inference_engine.classify_document(image_path)
-
-        # Log classification result
-        doc_type = classification_result.get("document_type", "unknown")
-        confidence = classification_result.get("confidence", 0.0)
-        console.print(
-            f"[dim]  → Classified as {doc_type} (confidence: {confidence:.2f})[/dim]"
-        )
 
         # Run inference for extraction
         response = inference_engine.predict(image_path, prompt)
