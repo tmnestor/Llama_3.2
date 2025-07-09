@@ -52,9 +52,7 @@ class ImageLoader:
         data_parent = base_path.parent if base_path.is_file() else base_path
 
         # Define image collections to discover - datasets directory only
-        image_collections = {
-            "configured_images": self._find_images_in_path(base_path, recursive),
-        }
+        image_collections = {}
         
         # Check for datasets directory structure
         datasets_path = None
@@ -86,6 +84,8 @@ class ImageLoader:
                 if synthetic_receipts_images.exists():
                     image_collections["synthetic_receipts_images"] = self._find_images_in_path(synthetic_receipts_images, recursive)
         else:
+            # Fallback to configured path if no datasets directory found
+            image_collections["configured_images"] = self._find_images_in_path(base_path, recursive)
             self.logger.warning(f"No 'datasets' directory found in {base_path} or {data_parent}")
             self.logger.info("Please ensure images are organized in a 'datasets' directory")
 
