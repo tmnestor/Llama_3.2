@@ -156,7 +156,6 @@ class V100ModelLoader:
                 device_map="cuda:0",  # Single V100
                 torch_dtype=torch.float16,
                 quantization_config=quantization_config,
-                trust_remote_code=True,
                 local_files_only=True,
                 low_cpu_mem_usage=True,
                 max_memory={0: "15GB"},  # Leave 1GB headroom
