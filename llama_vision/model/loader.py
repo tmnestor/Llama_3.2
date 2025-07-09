@@ -218,6 +218,10 @@ class LlamaModelLoader:
                     model = model.to("cpu")
                     self.logger.info("Model loaded to CPU as fallback")
 
+            # Set model to evaluation mode for inference-only workloads
+            model.eval()
+            self.logger.info("Model set to evaluation mode (inference-only)")
+
             # Test model functionality
             self._test_model_functionality(model, processor)
 
