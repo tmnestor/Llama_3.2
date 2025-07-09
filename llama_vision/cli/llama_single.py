@@ -48,28 +48,28 @@ def process_single_image_core(
     if not Path(image_path).exists():
         raise FileNotFoundError(f"Image file not found: {image_path}")
 
-    # STEP 1: Classification (if needed)
+    # STEP 1: Classification (always run to get document type for extraction)
     document_type = None
     classification_result = None
     confidence = 0.0
     selected_prompt_name = prompt or "manual"
 
-    if use_smart_classification or classify_only:
-        classification_result = inference_engine.classify_document(image_path)
-        document_type = classification_result["document_type"]
-        confidence = classification_result["confidence"]
+    # Always run classification to get document type for extraction
+    classification_result = inference_engine.classify_document(image_path)
+    document_type = classification_result["document_type"]
+    confidence = classification_result["confidence"]
 
-        if classify_only:
-            return {
-                "success": True,
-                "classify_only": True,
-                "document_type": document_type,
-                "confidence": confidence,
-                "is_business_document": classification_result.get(
-                    "is_business_document", False
-                ),
-                "classification_result": classification_result,
-            }
+    if classify_only:
+        return {
+            "success": True,
+            "classify_only": True,
+            "document_type": document_type,
+            "confidence": confidence,
+            "is_business_document": classification_result.get(
+                "is_business_document", False
+            ),
+            "classification_result": classification_result,
+        }
 
     # STEP 2: Prompt Selection
     if use_smart_classification:
